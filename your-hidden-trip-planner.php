@@ -9,9 +9,20 @@
 
 if (!defined('ABSPATH')) exit;
 
+// Plugin constants
 define('YHT_VER', '6.2');
 define('YHT_SLUG', 'your-hidden-trip');
 define('YHT_OPT',  'yht_settings');
+
+// Traveler types
+define('YHT_TRAVELER_ACTIVE', 'active');
+define('YHT_TRAVELER_RELAXED', 'relaxed');
+
+// Default values
+define('YHT_DEFAULT_PAX', 2);
+define('YHT_DEFAULT_TIMEOUT', 20);
+define('YHT_ACTIVE_STOPS_PER_DAY', 3);
+define('YHT_RELAXED_STOPS_PER_DAY', 2);
 
 /* ---------------------------------------------------------
  * 1) ATTIVAZIONE / OPZIONI
@@ -512,19 +523,19 @@ function yht_api_generate(WP_REST_Request $req){
       return rest_ensure_response(array('ok'=>false,'message'=>'Dati richiesta non validi'));
     }
     
-    $trav = sanitize_text_field($p['travelerType'] ?? '');
+    $traveler_type = sanitize_text_field($p['travelerType'] ?? '');
     $exps = array_map('sanitize_text_field', $p['esperienze'] ?? array());
     $areas= array_map('sanitize_text_field', $p['luogo'] ?? array());
     $dur  = sanitize_text_field($p['durata'] ?? '');
     $date = sanitize_text_field($p['startdate'] ?? '');
 
     // Validate required parameters
-    if(empty($exps) || empty($areas) || empty($dur) || empty($date) || empty($trav)) {
+    if(empty($exps) || empty($areas) || empty($dur) || empty($date) || empty($traveler_type)) {
       return rest_ensure_response(array('ok'=>false,'message'=>'Parametri obbligatori mancanti'));
     }
 
     $days = yht_durata_to_days($dur);
-    $perDay = ($trav === 'active') ? 3 : 2;
+    $perDay = ($traveler_type === YHT_TRAVELER_ACTIVE) ? YHT_ACTIVE_STOPS_PER_DAY : YHT_RELAXED_STOPS_PER_DAY;
 
     $pool = yht_query_poi($exps, $areas, $date, $days);
     
@@ -777,7 +788,7 @@ function yht_api_lead(WP_REST_Request $req){
           'content-type'=>'application/json'
         ),
         'body'=> wp_json_encode($body),
-        'timeout'=> 20
+        'timeout'=> YHT_DEFAULT_TIMEOUT
       ));
       
       if(is_wp_error($resp)){
