@@ -110,6 +110,14 @@ class YHT_Importer {
                 $csv.= "Bolsena – Hotel Lungolago,Hotel fronte lago,42.644,11.990,med,colazione|wi-fi|parcheggio|pet,40\n";
                 break;
                 
+            case 'servizi':
+                $filename = 'yht_servizi_template.csv';
+                $csv = "title,descr,lat,lng,tipo_servizio,fascia_prezzo,orari,telefono,sito_web\n";
+                $csv.= "Trattoria da Mario,Cucina tipica locale,42.420,12.104,ristorante,med,12:00-14:30|19:00-22:00,0761123456,https://trattoriadamario.it\n";
+                $csv.= "Autonoleggio Centro,Noleggio auto e furgoni,42.425,12.110,noleggio_auto,varia,08:00-19:00,0761654321,https://autonoleggio.it\n";
+                $csv.= "Taxi Service,Servizio taxi e autisti,42.415,12.095,autista,varia,24h,3331234567,\n";
+                break;
+                
             case 'tours':
                 $filename = 'yht_tours_template.csv';
                 $sample = json_encode([["day"=>1,"stops"=>[["luogo_title"=>"Viterbo – Quartiere San Pellegrino","time"=>"10:00"]]]], JSON_UNESCAPED_UNICODE);
@@ -145,6 +153,8 @@ class YHT_Importer {
                     &nbsp;&nbsp;
                     <label><input type="radio" name="yht_type" value="alloggi" /> Alloggi</label>
                     &nbsp;&nbsp;
+                    <label><input type="radio" name="yht_type" value="servizi" /> Servizi</label>
+                    &nbsp;&nbsp;
                     <label><input type="radio" name="yht_type" value="tours" /> Tour curati</label>
                 </p>
                 <p><input type="file" name="yht_csv" accept=".csv" required /></p>
@@ -155,6 +165,7 @@ class YHT_Importer {
             <p>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=yht_import&download_template=luoghi')); ?>">Luoghi CSV</a>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=yht_import&download_template=alloggi')); ?>">Alloggi CSV</a>
+                <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=yht_import&download_template=servizi')); ?>">Servizi CSV</a>
                 <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=yht_import&download_template=tours')); ?>">Tour CSV</a>
             </p>
 

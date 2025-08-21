@@ -131,11 +131,130 @@ class YHT_Helpers {
     }
     
     /**
+     * Query accommodations
+     */
+    public static function query_accommodations($areas, $startdate, $days) {
+        $tax_query = array();
+        
+        if(!empty($areas)) {
+            $tax_query[] = array(
+                'taxonomy' => 'yht_area',
+                'field' => 'slug',
+                'terms' => $areas,
+                'operator' => 'IN'
+            );
+        }
+        
+        $query = new WP_Query(array(
+            'post_type' => 'yht_alloggio',
+            'posts_per_page' => -1,
+            'tax_query' => $tax_query,
+            'no_found_rows' => true,
+        ));
+
+        $results = array();
+        $date_range = self::date_range($startdate, $days);
+        
+        while($query->have_posts()) { 
+            $query->the_post();
+            $id = get_the_ID();
+            $lat = (float) get_post_meta($id,'yht_lat',true);
+            $lng = (float) get_post_meta($id,'yht_lng',true);
+            
+            if(!$lat || !$lng) continue;
+
+            $results[] = array(
+                'id' => $id,
+                'title' => get_the_title(),
+                'excerpt' => wp_strip_all_tags(get_the_excerpt()),
+                'lat' => $lat,
+                'lng' => $lng,
+                'fascia_prezzo' => get_post_meta($id,'yht_fascia_prezzo',true),
+                'servizi' => json_decode(get_post_meta($id,'yht_servizi_json',true) ?: '[]', true),
+                'capienza' => (int) get_post_meta($id,'yht_capienza',true),
+                'link' => get_permalink($id),
+                'type' => 'accommodation'
+            );
+        }
+        wp_reset_postdata();
+        
+        return $results;
+    }
+    
+    /**
+     * Query services (restaurants, car rental, drivers)
+     */
+    public static function query_services($areas, $trasporto = '') {
+        $tax_query = array('relation' => 'AND');
+        
+        if(!empty($areas)) {
+            $tax_query[] = array(
+                'taxonomy' => 'yht_area',
+                'field' => 'slug',
+                'terms' => $areas,
+                'operator' => 'IN'
+            );
+        }
+        
+        // Filter by service type based on transport preference
+        $service_types = array('ristorante'); // Always include restaurants
+        if($trasporto === 'noleggio_auto') {
+            $service_types[] = 'noleggio_auto';
+        } elseif($trasporto === 'autista') {
+            $service_types[] = 'autista';
+        }
+        
+        if(!empty($service_types)) {
+            $tax_query[] = array(
+                'taxonomy' => 'yht_tipo_servizio',
+                'field' => 'slug',
+                'terms' => $service_types,
+                'operator' => 'IN'
+            );
+        }
+        
+        $query = new WP_Query(array(
+            'post_type' => 'yht_servizio',
+            'posts_per_page' => -1,
+            'tax_query' => (count($tax_query) > 1 ? $tax_query : array()),
+            'no_found_rows' => true,
+        ));
+
+        $results = array();
+        
+        while($query->have_posts()) { 
+            $query->the_post();
+            $id = get_the_ID();
+            $lat = (float) get_post_meta($id,'yht_lat',true);
+            $lng = (float) get_post_meta($id,'yht_lng',true);
+            
+            if(!$lat || !$lng) continue;
+
+            $results[] = array(
+                'id' => $id,
+                'title' => get_the_title(),
+                'excerpt' => wp_strip_all_tags(get_the_excerpt()),
+                'lat' => $lat,
+                'lng' => $lng,
+                'fascia_prezzo' => get_post_meta($id,'yht_fascia_prezzo',true),
+                'orari' => get_post_meta($id,'yht_orari',true),
+                'telefono' => get_post_meta($id,'yht_telefono',true),
+                'sito_web' => get_post_meta($id,'yht_sito_web',true),
+                'service_type' => wp_get_post_terms($id,'yht_tipo_servizio',array('fields'=>'slugs')),
+                'link' => get_permalink($id),
+                'type' => 'service'
+            );
+        }
+        wp_reset_postdata();
+        
+        return $results;
+    }
+    /**
      * Plan itinerary with given parameters
      */
-    public static function plan_itinerary($name, $pool, $days, $per_day, $weights) {
+    public static function plan_itinerary($name, $pool, $days, $per_day, $weights, $accommodations = array(), $services = array()) {
         if(empty($pool)) {
-            return array('name' => $name, 'days' => array(), 'stops' => 0, 'totalEntryCost' => 0);
+            return array('name' => $name, 'days' => array(), 'stops' => 0, 'totalEntryCost' => 0, 'accommodations' => array(), 'services' => array());
         }
         
         // Score places by experiences
@@ -213,11 +332,48 @@ class YHT_Helpers {
             $total_cost += is_numeric($stop['cost']) ? (float)$stop['cost'] : 0;
         }
 
+        // Select accommodations (1-2 best rated)
+        $selected_accommodations = array();
+        if(!empty($accommodations)) {
+            $selected_accommodations = array_slice($accommodations, 0, 2);
+        }
+
+        // Select restaurants near itinerary points
+        $selected_restaurants = array();
+        $selected_transport_services = array();
+        
+        if(!empty($services)) {
+            foreach($services as $service) {
+                $service_types = $service['service_type'] ?? array();
+                
+                if(in_array('ristorante', $service_types) && count($selected_restaurants) < 3) {
+                    // Select restaurants close to itinerary stops
+                    $min_distance = PHP_FLOAT_MAX;
+                    foreach($selected as $stop) {
+                        $distance = self::calculate_distance($stop['lat'], $stop['lng'], $service['lat'], $service['lng']);
+                        if($distance < $min_distance) {
+                            $min_distance = $distance;
+                        }
+                    }
+                    
+                    if($min_distance < 10) { // Within 10km
+                        $selected_restaurants[] = $service;
+                    }
+                } elseif((in_array('noleggio_auto', $service_types) || in_array('autista', $service_types)) && count($selected_transport_services) < 2) {
+                    $selected_transport_services[] = $service;
+                }
+            }
+        }
+
+        $all_services = array_merge($selected_restaurants, $selected_transport_services);
+
         return array(
             'name' => $name, 
             'days' => $days_array, 
             'stops' => count($selected), 
-            'totalEntryCost' => round($total_cost)
+            'totalEntryCost' => round($total_cost),
+            'accommodations' => $selected_accommodations,
+            'services' => $all_services
         );
     }
     

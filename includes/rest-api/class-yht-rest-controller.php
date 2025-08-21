@@ -54,24 +54,28 @@ class YHT_Rest_Controller {
         $areas = array_map('sanitize_text_field', $params['luogo'] ?? array());
         $duration = sanitize_text_field($params['durata'] ?? '');
         $startdate = sanitize_text_field($params['startdate'] ?? '');
+        $trasporto = sanitize_text_field($params['trasporto'] ?? '');
 
         $days = YHT_Helpers::duration_to_days($duration);
         $per_day = ($traveler_type === 'active') ? 3 : 2;
 
         $pool = YHT_Helpers::query_poi($experiences, $areas, $startdate, $days);
+        $accommodations = YHT_Helpers::query_accommodations($areas, $startdate, $days);
+        $services = YHT_Helpers::query_services($areas, $trasporto);
 
         // Generate tours with different profiles
         $tours = array(
-            YHT_Helpers::plan_itinerary('Tour Essenziale', $pool, $days, $per_day, array('trekking'=>1,'passeggiata'=>1,'cultura'=>1,'benessere'=>0.6,'enogastronomia'=>0.8)),
-            YHT_Helpers::plan_itinerary('Natura & Borghi', $pool, $days, $per_day, array('trekking'=>1.2,'passeggiata'=>1,'cultura'=>0.6,'benessere'=>0.5,'enogastronomia'=>0.8)),
-            YHT_Helpers::plan_itinerary('Arte & Sapori', $pool, $days, $per_day, array('trekking'=>0.5,'passeggiata'=>0.9,'cultura'=>1.3,'benessere'=>0.7,'enogastronomia'=>1.1))
+            YHT_Helpers::plan_itinerary('Tour Essenziale', $pool, $days, $per_day, array('trekking'=>1,'passeggiata'=>1,'cultura'=>1,'benessere'=>0.6,'enogastronomia'=>0.8), $accommodations, $services),
+            YHT_Helpers::plan_itinerary('Natura & Borghi', $pool, $days, $per_day, array('trekking'=>1.2,'passeggiata'=>1,'cultura'=>0.6,'benessere'=>0.5,'enogastronomia'=>0.8), $accommodations, $services),
+            YHT_Helpers::plan_itinerary('Arte & Sapori', $pool, $days, $per_day, array('trekking'=>0.5,'passeggiata'=>0.9,'cultura'=>1.3,'benessere'=>0.7,'enogastronomia'=>1.1), $accommodations, $services)
         );
 
         return rest_ensure_response(array(
             'ok' => true,
             'days' => $days,
             'perDay' => $per_day,
-            'tours' => $tours
+            'tours' => $tours,
+            'trasporto' => $trasporto
         ));
     }
     

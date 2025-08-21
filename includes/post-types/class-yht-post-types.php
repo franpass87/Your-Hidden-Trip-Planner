@@ -51,6 +51,16 @@ class YHT_Post_Types {
             'rewrite' => array('slug'=>'alloggio'),
         ));
 
+        // CPT Servizi (restaurants, car rental, drivers, etc.)
+        register_post_type('yht_servizio', array(
+            'label' => 'Servizi',
+            'public' => true,
+            'show_in_rest' => true,
+            'menu_icon' => 'dashicons-food',
+            'supports' => array('title','editor','thumbnail','excerpt'),
+            'rewrite' => array('slug'=>'servizio'),
+        ));
+
         // CPT Partner (B2B)
         register_post_type('yht_partner', array(
             'label' => 'Partner',
@@ -78,6 +88,9 @@ class YHT_Post_Types {
         register_taxonomy('yht_stagione', array('yht_luogo','yht_tour'), array(
             'label'=>'Stagionalità', 'public'=>true, 'hierarchical'=>false, 'show_in_rest'=>true
         ));
+        register_taxonomy('yht_tipo_servizio', array('yht_servizio'), array(
+            'label'=>'Tipo Servizio', 'public'=>true, 'hierarchical'=>false, 'show_in_rest'=>true
+        ));
     }
     
     /**
@@ -104,6 +117,12 @@ class YHT_Post_Types {
         // Tour curati
         register_post_meta('yht_tour','yht_giorni',$meta_s);       // JSON dei giorni
         register_post_meta('yht_tour','yht_prezzo_base',$meta_s);  // float
+
+        // Servizi
+        $servizio_fields = array('yht_lat','yht_lng','yht_fascia_prezzo','yht_orari','yht_telefono','yht_sito_web');
+        foreach($servizio_fields as $field) {
+            register_post_meta('yht_servizio', $field, $meta_s);
+        }
     }
     
     /**
