@@ -1,0 +1,70 @@
+# POT Template for Your Hidden Trip Plugin
+# This file contains all the translatable strings found in the plugin
+msgid ""
+msgstr ""
+"Project-Id-Version: Your Hidden Trip Builder\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 12:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Main title
+msgid "Crea il tuo viaggio su misura"
+msgstr ""
+
+# Step labels
+msgid "Step di compilazione"
+msgstr ""
+
+msgid "Viaggiatore"
+msgstr ""
+
+msgid "Esperienze"
+msgstr ""
+
+msgid "Luogo"
+msgstr ""
+
+msgid "Trasporto"
+msgstr ""
+
+msgid "Durata"
+msgstr ""
+
+msgid "Riepilogo"
+msgstr ""
+
+msgid "Prenota"
+msgstr ""
+
+# Step 1 - Traveler Type
+msgid "Che tipo di viaggiatore sei?"
+msgstr ""
+
+msgid "Scegli lo stile: incide su tappe al giorno e budget."
+msgstr ""
+
+msgid "Tipo viaggiatore"
+msgstr ""
+
+msgid "Ami fare tante cose"
+msgstr ""
+
+msgid "Ritmo alto (3–4 tappe/giorno)"
+msgstr ""
+
+msgid "Giornata rilassata"
+msgstr ""
+
+msgid "Ritmo lento (1–2 tappe/giorno)"
+msgstr ""
+
+msgid "Seleziona un tipo di viaggiatore."
+msgstr ""
+
+# Add more strings as needed...

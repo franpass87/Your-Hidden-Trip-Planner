@@ -53,9 +53,70 @@ class YHT_Plugin {
      * Initialize the plugin
      */
     private function init() {
+        add_action('plugins_loaded', array($this, 'load_textdomain'));
         add_action('init', array($this, 'load_components'));
         register_activation_hook(YHT_PLUGIN_FILE, array($this, 'activate'));
         register_deactivation_hook(YHT_PLUGIN_FILE, array($this, 'deactivate'));
+    }
+    
+    /**
+     * Load text domain for translations
+     */
+    public function load_textdomain() {
+        load_plugin_textdomain('your-hidden-trip', false, dirname(plugin_basename(YHT_PLUGIN_FILE)) . '/languages');
+        
+        // WPML compatibility - ensure current language is detected
+        if (function_exists('icl_get_current_language')) {
+            $current_lang = icl_get_current_language();
+            if ($current_lang) {
+                add_filter('locale', array($this, 'wpml_locale_filter'));
+            }
+        }
+    }
+    
+    /**
+     * WPML locale filter
+     */
+    public function wpml_locale_filter($locale) {
+        if (function_exists('icl_get_current_language')) {
+            $current_lang = icl_get_current_language();
+            if ($current_lang === 'en') {
+                return 'en_US';
+            } elseif ($current_lang === 'it') {
+                return 'it_IT';
+            }
+        }
+        return $locale;
+    }
+    
+    /**
+     * Get current language for WPML compatibility
+     */
+    public function get_current_language() {
+        if (function_exists('icl_get_current_language')) {
+            return icl_get_current_language();
+        }
+        return 'it'; // Default to Italian
+    }
+    
+    /**
+     * Check if WPML is active and configured
+     */
+    public function is_wpml_active() {
+        return function_exists('icl_get_current_language') && function_exists('icl_get_languages');
+    }
+    
+    /**
+     * Get available languages from WPML
+     */
+    public function get_available_languages() {
+        if (function_exists('icl_get_languages')) {
+            return icl_get_languages('skip_missing=0&orderby=code');
+        }
+        return array(
+            'it' => array('code' => 'it', 'native_name' => 'Italiano'),
+            'en' => array('code' => 'en', 'native_name' => 'English')
+        );
     }
     
     /**
