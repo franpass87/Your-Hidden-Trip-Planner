@@ -27,6 +27,10 @@ register_activation_hook(__FILE__, function(){
   add_option(YHT_OPT, $defaults);
 });
 
+/**
+ * Get plugin settings with defaults
+ * @return array Plugin settings
+ */
 function yht_get_settings(){
   $opt = get_option(YHT_OPT, array());
   $defaults = array(
@@ -126,7 +130,24 @@ add_action('init', function(){
 add_action('add_meta_boxes', function(){
   add_meta_box('yht_luogo_meta','Dati Luogo','yht_mb_luogo','yht_luogo','normal','high');
 });
+/**
+ * Get admin styles for metaboxes
+ * @return string CSS styles for admin interface
+ */
+function yht_get_admin_styles() {
+  return '<style>
+    .yht-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .yht-grid input[type=text], .yht-grid textarea{width:100%}
+    .yht-chiusure-list li{margin-bottom:6px}
+  </style>';
+}
+
+/**
+ * Metabox callback for luoghi (places) custom post type
+ * @param WP_Post $post Current post object
+ */
 function yht_mb_luogo($post){
+  // Get current meta values
   $lat = esc_attr(get_post_meta($post->ID,'yht_lat',true));
   $lng = esc_attr(get_post_meta($post->ID,'yht_lng',true));
   $cst = esc_attr(get_post_meta($post->ID,'yht_cost_ingresso',true));
@@ -137,13 +158,11 @@ function yht_mb_luogo($post){
   $ora = esc_textarea(get_post_meta($post->ID,'yht_orari_note',true));
   $chi = get_post_meta($post->ID,'yht_chiusure_json',true);
   if(!$chi) $chi = '[]';
+  
   wp_nonce_field('yht_save_meta','yht_meta_nonce');
+  
+  echo yht_get_admin_styles();
   ?>
-  <style>
-    .yht-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .yht-grid input[type=text], .yht-grid textarea{width:100%}
-    .yht-chiusure-list li{margin-bottom:6px}
-  </style>
   <div class="yht-grid">
     <div><label>Latitudine</label><input type="text" name="yht_lat" value="<?php echo $lat; ?>" /></div>
     <div><label>Longitudine</label><input type="text" name="yht_lng" value="<?php echo $lng; ?>" /></div>
@@ -429,6 +448,11 @@ add_action('rest_api_init', function(){
   ));
 });
 
+/**
+ * REST API endpoint to generate tour suggestions
+ * @param WP_REST_Request $req Request object
+ * @return WP_REST_Response Tour generation results
+ */
 function yht_api_generate(WP_REST_Request $req){
   $p = $req->get_json_params();
   $trav = sanitize_text_field($p['travelerType'] ?? '');
@@ -456,6 +480,14 @@ function yht_api_generate(WP_REST_Request $req){
   return rest_ensure_response(array('ok'=>true,'days'=>$days,'perDay'=>$perDay,'tours'=>$tours));
 }
 
+/**
+ * Query POI (Points of Interest) based on criteria
+ * @param array $exps Experience types
+ * @param array $areas Location areas 
+ * @param string $startdate Start date
+ * @param int $days Number of days
+ * @return array Array of POI matches
+ */
 function yht_query_poi($exps, $areas, $startdate, $days){
   $tax = array('relation'=>'AND');
   if(!empty($exps)){
@@ -578,6 +610,14 @@ function yht_plan_itinerary($name, $pool, $days, $perDay, $weights){
   return array('name'=>$name, 'days'=>$daysArr, 'stops'=>count($selected), 'totalEntryCost'=>round($cost));
 }
 
+/**
+ * Calculate distance between two coordinates using Haversine formula
+ * @param float $lat1 Latitude of first point
+ * @param float $lon1 Longitude of first point  
+ * @param float $lat2 Latitude of second point
+ * @param float $lon2 Longitude of second point
+ * @return float Distance in kilometers
+ */
 function yht_dist($lat1,$lon1,$lat2,$lon2){
   $R = 6371;
   $dLat = deg2rad($lat2-$lat1);
@@ -587,6 +627,11 @@ function yht_dist($lat1,$lon1,$lat2,$lon2){
   return $R * $c;
 }
 
+/**
+ * Convert duration string to number of days
+ * @param string $v Duration string (e.g., '2_notti')
+ * @return int Number of days
+ */
 function yht_durata_to_days($v){
   if($v==='1_notte') return 2;
   if($v==='2_notti') return 3;
@@ -596,6 +641,11 @@ function yht_durata_to_days($v){
   return 2;
 }
 
+/**
+ * REST API endpoint to submit lead to Brevo
+ * @param WP_REST_Request $req Request object
+ * @return WP_REST_Response Lead submission result
+ */
 function yht_api_lead(WP_REST_Request $req){
   $p = $req->get_json_params();
   $email = sanitize_email($p['email'] ?? '');
@@ -636,6 +686,11 @@ function yht_api_lead(WP_REST_Request $req){
   return rest_ensure_response(array('ok'=>$ok,'message'=>$msg));
 }
 
+/**
+ * REST API endpoint to create WooCommerce product from tour
+ * @param WP_REST_Request $req Request object
+ * @return WP_REST_Response Product creation result
+ */
 function yht_api_wc_create_product(WP_REST_Request $req){
   if(!class_exists('WC_Product_Simple')) return rest_ensure_response(array('ok'=>false,'message'=>'WooCommerce non attivo'));
   $p = $req->get_json_params();
@@ -668,6 +723,10 @@ function yht_api_wc_create_product(WP_REST_Request $req){
 }
 
 /* ---------------- PDF (dompdf) ---------------- */
+/**
+ * Check if dompdf library is available
+ * @return bool True if dompdf is available
+ */
 function yht_has_dompdf(){
   $vendor = plugin_dir_path(__FILE__).'vendor/autoload.php';
   $alt    = plugin_dir_path(__FILE__).'vendor/dompdf/autoload.inc.php';
@@ -676,6 +735,11 @@ function yht_has_dompdf(){
   return false;
 }
 
+/**
+ * REST API endpoint to generate PDF from tour data
+ * @param WP_REST_Request $req Request object
+ * @return WP_REST_Response PDF generation result
+ */
 function yht_api_pdf(WP_REST_Request $req){
   $p = $req->get_json_params();
   $state = $p['state'] ?? array();
@@ -769,10 +833,13 @@ function yht_render_pdf_html($state, $tour, $map_png){
 /* ---------------------------------------------------------
  * 6) SHORTCODE BUILDER (UI + LOGICA)
  * --------------------------------------------------------- */
-add_shortcode('yourhiddentrip_builder', function(){
-  ob_start(); ?>
-<div id="yht-builder" class="yht-wrap" aria-live="polite">
-  <style>
+
+/**
+ * Get the CSS styles for the trip builder interface
+ * @return string CSS styles
+ */
+function yht_get_builder_styles() {
+  return '<style>
     :root{
       --bg:#f8fafc; --text:#111827; --muted:#6b7280; --card:#ffffff; --line:#e5e7eb;
       --primary:#10b981; --primary-600:#059669; --accent:#38bdf8; --danger:#ef4444; --warning:#f59e0b;
@@ -826,7 +893,17 @@ add_shortcode('yourhiddentrip_builder', function(){
     .yht-col{flex:1 1 auto}
     .yht-input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:#111827}
     .yht-small{font-size:.86rem;color:var(--muted)}
-  </style>
+  </style>';
+}
+
+/**
+ * Main shortcode callback for the trip builder interface
+ * @return string HTML output
+ */
+add_shortcode('yourhiddentrip_builder', function(){
+  ob_start(); ?>
+<div id="yht-builder" class="yht-wrap" aria-live="polite">
+  <?php echo yht_get_builder_styles(); ?>
 
   <div class="yht-header">
     <span class="yht-badge">Your Hidden Trip</span>
