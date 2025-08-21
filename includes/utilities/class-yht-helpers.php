@@ -172,6 +172,13 @@ class YHT_Helpers {
                 'fascia_prezzo' => get_post_meta($id,'yht_fascia_prezzo',true),
                 'servizi' => json_decode(get_post_meta($id,'yht_servizi_json',true) ?: '[]', true),
                 'capienza' => (int) get_post_meta($id,'yht_capienza',true),
+                'prezzo_notte_standard' => (float) get_post_meta($id,'yht_prezzo_notte_standard',true),
+                'prezzo_notte_premium' => (float) get_post_meta($id,'yht_prezzo_notte_premium',true),
+                'prezzo_notte_luxury' => (float) get_post_meta($id,'yht_prezzo_notte_luxury',true),
+                'incluso_colazione' => get_post_meta($id,'yht_incluso_colazione',true) === '1',
+                'incluso_pranzo' => get_post_meta($id,'yht_incluso_pranzo',true) === '1',
+                'incluso_cena' => get_post_meta($id,'yht_incluso_cena',true) === '1',
+                'disponibilita' => json_decode(get_post_meta($id,'yht_disponibilita_json',true) ?: '[]', true),
                 'link' => get_permalink($id),
                 'type' => 'accommodation'
             );
@@ -240,6 +247,12 @@ class YHT_Helpers {
                 'orari' => get_post_meta($id,'yht_orari',true),
                 'telefono' => get_post_meta($id,'yht_telefono',true),
                 'sito_web' => get_post_meta($id,'yht_sito_web',true),
+                'prezzo_persona' => (float) get_post_meta($id,'yht_prezzo_persona',true),
+                'prezzo_fisso' => (float) get_post_meta($id,'yht_prezzo_fisso',true),
+                'durata_servizio' => (int) get_post_meta($id,'yht_durata_servizio',true),
+                'capacita_max' => (int) get_post_meta($id,'yht_capacita_max',true),
+                'prenotazione_richiesta' => get_post_meta($id,'yht_prenotazione_richiesta',true) === '1',
+                'disponibilita' => json_decode(get_post_meta($id,'yht_disponibilita_json',true) ?: '[]', true),
                 'service_type' => wp_get_post_terms($id,'yht_tipo_servizio',array('fields'=>'slugs')),
                 'link' => get_permalink($id),
                 'type' => 'service'
