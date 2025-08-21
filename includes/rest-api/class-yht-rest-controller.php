@@ -287,6 +287,12 @@ class YHT_Rest_Controller {
         $package_type = sanitize_text_field($params['package_type'] ?? 'standard');
         $special_requests = sanitize_textarea_field($params['special_requests'] ?? '');
         
+        // Flexibility options
+        $flexible_dates = (bool)($params['flexible_dates'] ?? false);
+        $add_insurance = (bool)($params['add_insurance'] ?? false);
+        $early_checkin = (bool)($params['early_checkin'] ?? false);
+        $late_checkout = (bool)($params['late_checkout'] ?? false);
+        
         // Check availability first
         $availability = $this->check_tour_availability($tour, $travel_date, $num_pax);
         if(!$availability['available']) {
@@ -296,8 +302,13 @@ class YHT_Rest_Controller {
             ));
         }
         
-        // Calculate pricing
-        $pricing = $this->calculate_all_inclusive_price($tour, $package_type, $num_pax, $travel_date);
+        // Calculate pricing with flexibility options
+        $pricing = $this->calculate_all_inclusive_price($tour, $package_type, $num_pax, $travel_date, array(
+            'flexible_dates' => $flexible_dates,
+            'add_insurance' => $add_insurance,
+            'early_checkin' => $early_checkin,
+            'late_checkout' => $late_checkout
+        ));
         
         // Generate booking reference
         $booking_reference = 'YHT-' . strtoupper(wp_generate_password(8, false));
@@ -331,6 +342,12 @@ class YHT_Rest_Controller {
         update_post_meta($booking_id, 'yht_itinerary_json', wp_json_encode($tour));
         update_post_meta($booking_id, 'yht_special_requests', $special_requests);
         
+        // Store flexibility options
+        update_post_meta($booking_id, 'yht_flexible_dates', $flexible_dates ? '1' : '0');
+        update_post_meta($booking_id, 'yht_add_insurance', $add_insurance ? '1' : '0');
+        update_post_meta($booking_id, 'yht_early_checkin', $early_checkin ? '1' : '0');
+        update_post_meta($booking_id, 'yht_late_checkout', $late_checkout ? '1' : '0');
+        
         // Create WooCommerce product for payment
         $wc_result = $this->create_wc_product_from_booking($booking_id, $tour, $pricing, $num_pax);
         
@@ -360,7 +377,7 @@ class YHT_Rest_Controller {
     /**
      * Calculate all-inclusive price for a tour
      */
-    private function calculate_all_inclusive_price($tour, $package_type, $num_pax, $travel_date) {
+    private function calculate_all_inclusive_price($tour, $package_type, $num_pax, $travel_date, $options = array()) {
         $total = 0;
         $breakdown = array();
         
@@ -425,6 +442,39 @@ class YHT_Rest_Controller {
         $service_fee = $total * 0.1; // 10% service fee
         $total += $service_fee;
         $breakdown['service_fee'] = $service_fee;
+        
+        // Add flexibility options pricing
+        if (!empty($options)) {
+            $extra_costs = 0;
+            
+            // Flexible dates discount
+            if ($options['flexible_dates'] ?? false) {
+                $discount = $total * 0.15; // 15% discount for flexibility
+                $total -= $discount;
+                $breakdown['flexible_dates_discount'] = -$discount;
+            }
+            
+            // Insurance cost
+            if ($options['add_insurance'] ?? false) {
+                $insurance_cost = 19 * $num_pax;
+                $total += $insurance_cost;
+                $breakdown['insurance'] = $insurance_cost;
+            }
+            
+            // Early check-in
+            if ($options['early_checkin'] ?? false) {
+                $early_checkin_cost = 25 * ($tour['days'] ?? 1);
+                $total += $early_checkin_cost;
+                $breakdown['early_checkin'] = $early_checkin_cost;
+            }
+            
+            // Late checkout  
+            if ($options['late_checkout'] ?? false) {
+                $late_checkout_cost = 25 * ($tour['days'] ?? 1);
+                $total += $late_checkout_cost;
+                $breakdown['late_checkout'] = $late_checkout_cost;
+            }
+        }
         
         // Calculate deposit (20% of total)
         $settings = YHT_Plugin::get_instance()->get_settings();

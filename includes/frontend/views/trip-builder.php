@@ -123,6 +123,19 @@
       0%, 100% { box-shadow: 0 4px 15px rgba(220,38,38,0.4); }
       50% { box-shadow: 0 6px 20px rgba(220,38,38,0.6); }
     }
+    
+    /* Flexibility Options */
+    .flexibility-options{display:grid;gap:12px;margin-top:12px}
+    .flex-option{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px}
+    .flex-checkbox{display:flex;align-items:flex-start;gap:12px;cursor:pointer;position:relative}
+    .checkmark{width:20px;height:20px;border:2px solid #d1d5db;border-radius:4px;display:flex;align-items:center;justify-content:center;transition:all 0.2s ease}
+    .flex-checkbox input[type="checkbox"]{display:none}
+    .flex-checkbox input[type="checkbox"]:checked + .checkmark{background:var(--primary);border-color:var(--primary)}
+    .flex-checkbox input[type="checkbox"]:checked + .checkmark::after{content:"✓";color:#fff;font-size:14px;font-weight:bold}
+    .flex-text{flex:1}
+    .flex-text strong{display:block;color:#111827;margin-bottom:4px}
+    .flex-benefit{display:block;font-size:0.85rem;color:var(--primary);font-weight:600}
+    .flex-checkbox:hover .checkmark{border-color:var(--primary)}
   </style>
 
   <div class="yht-header">
@@ -368,6 +381,56 @@
               </div>
               <div class="yht-price" id="price-luxury">€0</div>
             </article>
+          </div>
+        </div>
+
+        <!-- Booking Flexibility Options -->
+        <div style="grid-column:1/3;" class="form-section">
+          <div class="section-title">
+            <span class="section-icon">⚙️</span>
+            <span>Personalizza la tua esperienza</span>
+          </div>
+          <div class="flexibility-options">
+            <div class="flex-option">
+              <label class="flex-checkbox">
+                <input type="checkbox" id="flexible-dates" />
+                <span class="checkmark"></span>
+                <span class="flex-text">
+                  <strong>Date flessibili</strong> - Posso partire ±3 giorni
+                  <span class="flex-benefit">💰 Risparmia fino al 15%</span>
+                </span>
+              </label>
+            </div>
+            <div class="flex-option">
+              <label class="flex-checkbox">
+                <input type="checkbox" id="add-insurance" />
+                <span class="checkmark"></span>
+                <span class="flex-text">
+                  <strong>Assicurazione viaggio</strong> - Protezione completa
+                  <span class="flex-benefit">🛡️ Solo €19/persona</span>
+                </span>
+              </label>
+            </div>
+            <div class="flex-option">
+              <label class="flex-checkbox">
+                <input type="checkbox" id="early-checkin" />
+                <span class="checkmark"></span>
+                <span class="flex-text">
+                  <strong>Check-in anticipato</strong> - Dalle ore 12:00
+                  <span class="flex-benefit">⏰ +€25/notte</span>
+                </span>
+              </label>
+            </div>
+            <div class="flex-option">
+              <label class="flex-checkbox">
+                <input type="checkbox" id="late-checkout" />
+                <span class="checkmark"></span>
+                <span class="flex-text">
+                  <strong>Check-out posticipato</strong> - Fino alle 16:00
+                  <span class="flex-benefit">🧳 +€25/notte</span>
+                </span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -1114,7 +1177,12 @@
         travel_date: state.startdate,
         num_pax: numPax,
         package_type: state.packageType,
-        special_requests: document.getElementById('special-requests').value.trim()
+        special_requests: document.getElementById('special-requests').value.trim(),
+        // Flexibility options
+        flexible_dates: document.getElementById('flexible-dates')?.checked || false,
+        add_insurance: document.getElementById('add-insurance')?.checked || false,
+        early_checkin: document.getElementById('early-checkin')?.checked || false,
+        late_checkout: document.getElementById('late-checkout')?.checked || false
       };
       
       try {
