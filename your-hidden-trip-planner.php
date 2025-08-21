@@ -195,7 +195,6 @@ function yht_mb_luogo($post){
     })(jQuery);
   </script>
   <?php
-}
 
 add_action('save_post_yht_luogo', function($post_id){
   if(!isset($_POST['yht_meta_nonce']) || !wp_verify_nonce($_POST['yht_meta_nonce'],'yht_save_meta')) return;
