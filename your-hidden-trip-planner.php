@@ -269,26 +269,95 @@ function yht_admin_settings(){
 }
 
 /* ---------- Importer esteso: Luoghi + Alloggi + Tour + utility featured ---------- */
-function yht_admin_importer(){
+
+/**
+ * Handle CSV template downloads
+ * @return void Outputs CSV and exits if template requested
+ */
+function yht_handle_template_download() {
   if(!current_user_can('manage_options')) return;
 
-  // Template download
   if(isset($_GET['download_template']) && $_GET['download_template']==='luoghi'){
     $csv = "title,descr,lat,lng,esperienze|pipe,aree|pipe,costo_ingresso,durata_min,family,pet,mobility,stagioni|pipe\n";
     $csv.= "Civita di Bagnoregio,Il borgo sospeso,42.627,12.092,cultura|passeggiata,collina|centro_storico,5,90,0,0,0,primavera|autunno\n";
-    header('Content-Type: text/csv'); header('Content-Disposition: attachment; filename="yht_luoghi_template.csv"'); echo $csv; exit;
+    header('Content-Type: text/csv'); 
+    header('Content-Disposition: attachment; filename="yht_luoghi_template.csv"'); 
+    echo $csv; 
+    exit;
   }
+  
   if(isset($_GET['download_template']) && $_GET['download_template']==='alloggi'){
     $csv = "title,descr,lat,lng,fascia_prezzo,servizi|pipe,capienza\n";
     $csv.= "Bolsena – Hotel Lungolago,Hotel fronte lago,42.644,11.990,med,colazione|wi-fi|parcheggio|pet,40\n";
-    header('Content-Type: text/csv'); header('Content-Disposition: attachment; filename="yht_alloggi_template.csv"'); echo $csv; exit;
+    header('Content-Type: text/csv'); 
+    header('Content-Disposition: attachment; filename="yht_alloggi_template.csv"'); 
+    echo $csv; 
+    exit;
   }
+  
   if(isset($_GET['download_template']) && $_GET['download_template']==='tours'){
     $sample = json_encode([["day"=>1,"stops"=>[["luogo_title"=>"Viterbo – Quartiere San Pellegrino","time"=>"10:00"]]]], JSON_UNESCAPED_UNICODE);
     $csv = "title,descr,prezzo_base,giorni_json\n";
     $csv.= "Classico Tuscia 3 giorni,Itinerario esempio,120,\"".str_replace('"','""',$sample)."\"\n";
-    header('Content-Type: text/csv'); header('Content-Disposition: attachment; filename="yht_tours_template.csv"'); echo $csv; exit;
+    header('Content-Type: text/csv'); 
+    header('Content-Disposition: attachment; filename="yht_tours_template.csv"'); 
+    echo $csv; 
+    exit;
   }
+}
+
+/**
+ * Import luoghi from CSV data
+ * @param resource $file_handle CSV file handle
+ * @return int Number of imported items
+ */
+function yht_import_luoghi_from_csv($file_handle) {
+  $row = 0;
+  $imported = 0;
+  
+  while(($data = fgetcsv($file_handle, 0, ",")) !== false){
+    $row++; 
+    if($row == 1) continue; // Skip header
+    
+    list($title,$descr,$lat,$lng,$exp,$aree,$costo,$durata,$fam,$pet,$mob,$stag) = array_pad($data, 12, '');
+    
+    $post_id = wp_insert_post(array(
+      'post_type' => 'yht_luogo',
+      'post_title' => sanitize_text_field($title),
+      'post_content' => wp_kses_post($descr),
+      'post_status' => 'publish'
+    ));
+    
+    if($post_id){
+      // Set taxonomies
+      if($exp)  wp_set_post_terms($post_id, array_map('trim', explode('|',$exp)),  'yht_esperienza', false);
+      if($aree) wp_set_post_terms($post_id, array_map('trim', explode('|',$aree)), 'yht_area', false);
+      if($stag) wp_set_post_terms($post_id, array_map('trim', explode('|',$stag)), 'yht_stagione', false);
+      
+      // Set meta fields
+      update_post_meta($post_id,'yht_lat', sanitize_text_field($lat));
+      update_post_meta($post_id,'yht_lng', sanitize_text_field($lng));
+      update_post_meta($post_id,'yht_cost_ingresso', sanitize_text_field($costo));
+      update_post_meta($post_id,'yht_durata_min', sanitize_text_field($durata));
+      update_post_meta($post_id,'yht_accesso_family', $fam=='1'?'1':'');
+      update_post_meta($post_id,'yht_accesso_pet', $pet=='1'?'1':'');
+      update_post_meta($post_id,'yht_accesso_mobility', $mob=='1'?'1':'');
+      
+      $imported++;
+    }
+  }
+  
+  return $imported;
+}
+
+/**
+ * Main admin importer page handler
+ */
+function yht_admin_importer(){
+  if(!current_user_can('manage_options')) return;
+
+  // Handle template downloads
+  yht_handle_template_download();
 
   $msg = '';
   if(isset($_POST['yht_import'])){
@@ -296,27 +365,10 @@ function yht_admin_importer(){
     $type = sanitize_text_field($_POST['yht_type'] ?? 'luoghi');
     if(!empty($_FILES['yht_csv']['tmp_name'])){
       $h = fopen($_FILES['yht_csv']['tmp_name'],'r');
-      $row=0; $imported=0;
+      $imported = 0;
 
-      if($type==='luoghi'){
-        while(($data = fgetcsv($h, 0, ",")) !== false){
-          $row++; if($row==1) continue;
-          list($title,$descr,$lat,$lng,$exp,$aree,$costo,$durata,$fam,$pet,$mob,$stag) = array_pad($data,12,'');
-          $post_id = wp_insert_post(array('post_type'=>'yht_luogo','post_title'=>sanitize_text_field($title),'post_content'=>wp_kses_post($descr),'post_status'=>'publish'));
-          if($post_id){
-            if($exp)  wp_set_post_terms($post_id, array_map('trim', explode('|',$exp)),  'yht_esperienza', false);
-            if($aree) wp_set_post_terms($post_id, array_map('trim', explode('|',$aree)), 'yht_area', false);
-            if($stag) wp_set_post_terms($post_id, array_map('trim', explode('|',$stag)), 'yht_stagione', false);
-            update_post_meta($post_id,'yht_lat', sanitize_text_field($lat));
-            update_post_meta($post_id,'yht_lng', sanitize_text_field($lng));
-            update_post_meta($post_id,'yht_cost_ingresso', sanitize_text_field($costo));
-            update_post_meta($post_id,'yht_durata_min', sanitize_text_field($durata));
-            update_post_meta($post_id,'yht_accesso_family', $fam=='1'?'1':'');
-            update_post_meta($post_id,'yht_accesso_pet', $pet=='1'?'1':'');
-            update_post_meta($post_id,'yht_accesso_mobility', $mob=='1'?'1':'');
-            $imported++;
-          }
-        }
+      if($type === 'luoghi'){
+        $imported = yht_import_luoghi_from_csv($h);
         $msg = 'Luoghi importati: '.$imported;
       }
       elseif($type==='alloggi'){
@@ -454,30 +506,58 @@ add_action('rest_api_init', function(){
  * @return WP_REST_Response Tour generation results
  */
 function yht_api_generate(WP_REST_Request $req){
-  $p = $req->get_json_params();
-  $trav = sanitize_text_field($p['travelerType'] ?? '');
-  $exps = array_map('sanitize_text_field', $p['esperienze'] ?? array());
-  $areas= array_map('sanitize_text_field', $p['luogo'] ?? array());
-  $dur  = sanitize_text_field($p['durata'] ?? '');
-  $date = sanitize_text_field($p['startdate'] ?? '');
+  try {
+    $p = $req->get_json_params();
+    if(!$p) {
+      return rest_ensure_response(array('ok'=>false,'message'=>'Dati richiesta non validi'));
+    }
+    
+    $trav = sanitize_text_field($p['travelerType'] ?? '');
+    $exps = array_map('sanitize_text_field', $p['esperienze'] ?? array());
+    $areas= array_map('sanitize_text_field', $p['luogo'] ?? array());
+    $dur  = sanitize_text_field($p['durata'] ?? '');
+    $date = sanitize_text_field($p['startdate'] ?? '');
 
-  $days = yht_durata_to_days($dur);
-  $perDay = ($trav==='active') ? 3 : 2;
+    // Validate required parameters
+    if(empty($exps) || empty($areas) || empty($dur) || empty($date) || empty($trav)) {
+      return rest_ensure_response(array('ok'=>false,'message'=>'Parametri obbligatori mancanti'));
+    }
 
-  $pool = yht_query_poi($exps, $areas, $date, $days);
+    $days = yht_durata_to_days($dur);
+    $perDay = ($trav === 'active') ? 3 : 2;
 
-  // pesi (3 profili)
-  $WB = array('trekking'=>1,'passeggiata'=>1,'cultura'=>1,'benessere'=>0.6,'enogastronomia'=>0.8);
-  $WN = array('trekking'=>1.2,'passeggiata'=>1,'cultura'=>0.6,'benessere'=>0.5,'enogastronomia'=>0.8);
-  $WC = array('trekking'=>0.5,'passeggiata'=>0.9,'cultura'=>1.3,'benessere'=>0.7,'enogastronomia'=>1.1);
+    $pool = yht_query_poi($exps, $areas, $date, $days);
+    
+    if(empty($pool)) {
+      return rest_ensure_response(array('ok'=>false,'message'=>'Nessun luogo trovato per i criteri selezionati'));
+    }
 
-  $tours = array(
-    yht_plan_itinerary('Tour Essenziale', $pool, $days, $perDay, $WB),
-    yht_plan_itinerary('Natura & Borghi', $pool, $days, $perDay, $WN),
-    yht_plan_itinerary('Arte & Sapori',   $pool, $days, $perDay, $WC),
-  );
+    // Tour generation with different profiles
+    $WB = array('trekking'=>1,'passeggiata'=>1,'cultura'=>1,'benessere'=>0.6,'enogastronomia'=>0.8);
+    $WN = array('trekking'=>1.2,'passeggiata'=>1,'cultura'=>0.6,'benessere'=>0.5,'enogastronomia'=>0.8);
+    $WC = array('trekking'=>0.5,'passeggiata'=>0.9,'cultura'=>1.3,'benessere'=>0.7,'enogastronomia'=>1.1);
 
-  return rest_ensure_response(array('ok'=>true,'days'=>$days,'perDay'=>$perDay,'tours'=>$tours));
+    $tours = array(
+      yht_plan_itinerary('Tour Essenziale', $pool, $days, $perDay, $WB),
+      yht_plan_itinerary('Natura & Borghi', $pool, $days, $perDay, $WN),
+      yht_plan_itinerary('Arte & Sapori',   $pool, $days, $perDay, $WC),
+    );
+
+    // Filter out empty tours
+    $tours = array_filter($tours, function($tour) {
+      return !empty($tour['days']);
+    });
+
+    if(empty($tours)) {
+      return rest_ensure_response(array('ok'=>false,'message'=>'Impossibile generare tour con i criteri selezionati'));
+    }
+
+    return rest_ensure_response(array('ok'=>true,'days'=>$days,'perDay'=>$perDay,'tours'=>array_values($tours)));
+    
+  } catch(Exception $e) {
+    error_log('YHT API Generate Error: ' . $e->getMessage());
+    return rest_ensure_response(array('ok'=>false,'message'=>'Errore interno del server'));
+  }
 }
 
 /**
@@ -647,43 +727,79 @@ function yht_durata_to_days($v){
  * @return WP_REST_Response Lead submission result
  */
 function yht_api_lead(WP_REST_Request $req){
-  $p = $req->get_json_params();
-  $email = sanitize_email($p['email'] ?? '');
-  $name  = sanitize_text_field($p['name'] ?? '');
-  $payload = wp_kses_post($p['payload'] ?? '');
-  $settings = yht_get_settings();
-
-  // email interna
-  if(!empty($settings['notify_email'])){
-    wp_mail($settings['notify_email'], 'Nuovo lead YHT', "Nome: $name\nEmail: $email\n\n$payload");
-  }
-
-  // Brevo (se key presente)
-  $ok = true; $msg = 'Lead ricevuto';
-  if(!empty($settings['brevo_api_key']) && !empty($email)){
-    $body = array(
-      'email'=>$email,
-      'attributes'=> array(
-        'NOME'=>$name,
-        'ORIGINE'=>'YHT Builder',
-      ),
-      'updateEnabled'=> true,
-      'listIds'=> array()
-    );
-    $resp = wp_remote_post('https://api.brevo.com/v3/contacts', array(
-      'headers'=> array('accept'=>'application/json','api-key'=>$settings['brevo_api_key'],'content-type'=>'application/json'),
-      'body'=> wp_json_encode($body),
-      'timeout'=> 20
-    ));
-    if(is_wp_error($resp)){
-      $ok=false; $msg=$resp->get_error_message();
-    } else {
-      $code = wp_remote_retrieve_response_code($resp);
-      if($code>=400){ $ok=false; $msg='Errore Brevo '.$code.': '.wp_remote_retrieve_body($resp); }
+  try {
+    $p = $req->get_json_params();
+    if(!$p) {
+      return rest_ensure_response(array('ok'=>false,'message'=>'Dati richiesta non validi'));
     }
-  }
+    
+    $email = sanitize_email($p['email'] ?? '');
+    $name  = sanitize_text_field($p['name'] ?? '');
+    $payload = wp_kses_post($p['payload'] ?? '');
+    
+    // Validate required fields
+    if(empty($email) || empty($name)) {
+      return rest_ensure_response(array('ok'=>false,'message'=>'Nome ed email sono obbligatori'));
+    }
+    
+    if(!is_email($email)) {
+      return rest_ensure_response(array('ok'=>false,'message'=>'Formato email non valido'));
+    }
+    
+    $settings = yht_get_settings();
 
-  return rest_ensure_response(array('ok'=>$ok,'message'=>$msg));
+    // Send internal notification email
+    if(!empty($settings['notify_email'])){
+      $subject = 'Nuovo lead YHT - ' . $name;
+      $message = "Nome: $name\nEmail: $email\n\n$payload";
+      wp_mail($settings['notify_email'], $subject, $message);
+    }
+
+    // Brevo integration (if API key is present)
+    $ok = true; 
+    $msg = 'Lead ricevuto';
+    
+    if(!empty($settings['brevo_api_key'])){
+      $body = array(
+        'email'=>$email,
+        'attributes'=> array(
+          'NOME'=>$name,
+          'ORIGINE'=>'YHT Builder',
+        ),
+        'updateEnabled'=> true,
+        'listIds'=> array()
+      );
+      
+      $resp = wp_remote_post('https://api.brevo.com/v3/contacts', array(
+        'headers'=> array(
+          'accept'=>'application/json',
+          'api-key'=>$settings['brevo_api_key'],
+          'content-type'=>'application/json'
+        ),
+        'body'=> wp_json_encode($body),
+        'timeout'=> 20
+      ));
+      
+      if(is_wp_error($resp)){
+        $ok = false; 
+        $msg = 'Errore connessione Brevo: ' . $resp->get_error_message();
+        error_log('YHT Brevo Error: ' . $resp->get_error_message());
+      } else {
+        $code = wp_remote_retrieve_response_code($resp);
+        if($code >= 400){ 
+          $ok = false; 
+          $msg = 'Errore Brevo ' . $code . ': ' . wp_remote_retrieve_body($resp);
+          error_log('YHT Brevo API Error: ' . $code . ' - ' . wp_remote_retrieve_body($resp));
+        }
+      }
+    }
+
+    return rest_ensure_response(array('ok'=>$ok,'message'=>$msg));
+    
+  } catch(Exception $e) {
+    error_log('YHT API Lead Error: ' . $e->getMessage());
+    return rest_ensure_response(array('ok'=>false,'message'=>'Errore interno del server'));
+  }
 }
 
 /**
