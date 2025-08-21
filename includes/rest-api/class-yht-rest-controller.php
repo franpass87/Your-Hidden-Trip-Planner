@@ -165,7 +165,7 @@ class YHT_Rest_Controller {
      */
     public function create_wc_product(WP_REST_Request $request) {
         if(!class_exists('WC_Product_Simple')) {
-            return rest_ensure_response(array('ok' => false, 'message' => 'WooCommerce non attivo'));
+            return rest_ensure_response(array('ok' => false, 'message' => __('WooCommerce non attivo', 'your-hidden-trip')));
         }
         
         $params = $request->get_json_params();
@@ -273,7 +273,7 @@ class YHT_Rest_Controller {
             if(empty($params[$field])) {
                 return rest_ensure_response(array(
                     'ok' => false,
-                    'message' => "Campo richiesto mancante: $field"
+                    'message' => sprintf(__('Campo richiesto mancante: %s', 'your-hidden-trip'), $field)
                 ));
             }
         }
@@ -298,7 +298,7 @@ class YHT_Rest_Controller {
         if(!$availability['available']) {
             return rest_ensure_response(array(
                 'ok' => false,
-                'message' => 'Il pacchetto non è disponibile per le date selezionate.'
+                'message' => __('Il pacchetto non è disponibile per le date selezionate.', 'your-hidden-trip')
             ));
         }
         
@@ -324,7 +324,7 @@ class YHT_Rest_Controller {
         if(is_wp_error($booking_id)) {
             return rest_ensure_response(array(
                 'ok' => false,
-                'message' => 'Errore nella creazione della prenotazione'
+                'message' => __('Errore nella creazione della prenotazione', 'your-hidden-trip')
             ));
         }
         
@@ -369,7 +369,7 @@ class YHT_Rest_Controller {
         } else {
             return rest_ensure_response(array(
                 'ok' => false,
-                'message' => 'Prenotazione creata ma errore nel sistema di pagamento: ' . $wc_result['message']
+                'message' => sprintf(__('Prenotazione creata ma errore nel sistema di pagamento: %s', 'your-hidden-trip'), $wc_result['message'])
             ));
         }
     }
@@ -542,7 +542,7 @@ class YHT_Rest_Controller {
      */
     private function create_wc_product_from_booking($booking_id, $tour, $pricing, $num_pax) {
         if(!class_exists('WC_Product_Simple')) {
-            return array('ok' => false, 'message' => 'WooCommerce non attivo');
+            return array('ok' => false, 'message' => __('WooCommerce non attivo', 'your-hidden-trip'));
         }
         
         $booking_reference = get_post_meta($booking_id, 'yht_booking_reference', true);

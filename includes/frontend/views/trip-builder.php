@@ -140,129 +140,129 @@
 
   <div class="yht-header">
     <span class="yht-badge">Your Hidden Trip</span>
-    <div class="yht-title">Crea il tuo viaggio su misura</div>
+    <div class="yht-title"><?php _e('Crea il tuo viaggio su misura', 'your-hidden-trip'); ?></div>
   </div>
 
   <div class="yht-progressbar" aria-hidden="true"><i id="yht-progress"></i></div>
 
-  <div class="yht-steps" role="navigation" aria-label="Step di compilazione">
-    <div id="yht-s1" class="yht-step" data-label="Viaggiatore" data-active="true" tabindex="0">1</div>
+  <div class="yht-steps" role="navigation" aria-label="<?php esc_attr_e('Step di compilazione', 'your-hidden-trip'); ?>">
+    <div id="yht-s1" class="yht-step" data-label="<?php esc_attr_e('Viaggiatore', 'your-hidden-trip'); ?>" data-active="true" tabindex="0">1</div>
     <div class="yht-line"><i id="yht-l1"></i></div>
-    <div id="yht-s2" class="yht-step" data-label="Esperienze" tabindex="-1">2</div>
+    <div id="yht-s2" class="yht-step" data-label="<?php esc_attr_e('Esperienze', 'your-hidden-trip'); ?>" tabindex="-1">2</div>
     <div class="yht-line"><i id="yht-l2"></i></div>
-    <div id="yht-s3" class="yht-step" data-label="Luogo" tabindex="-1">3</div>
+    <div id="yht-s3" class="yht-step" data-label="<?php esc_attr_e('Luogo', 'your-hidden-trip'); ?>" tabindex="-1">3</div>
     <div class="yht-line"><i id="yht-l3"></i></div>
-    <div id="yht-s4" class="yht-step" data-label="Trasporto" tabindex="-1">4</div>
+    <div id="yht-s4" class="yht-step" data-label="<?php esc_attr_e('Trasporto', 'your-hidden-trip'); ?>" tabindex="-1">4</div>
     <div class="yht-line"><i id="yht-l4"></i></div>
-    <div id="yht-s5" class="yht-step" data-label="Durata" tabindex="-1">5</div>
+    <div id="yht-s5" class="yht-step" data-label="<?php esc_attr_e('Durata', 'your-hidden-trip'); ?>" tabindex="-1">5</div>
     <div class="yht-line"><i id="yht-l5"></i></div>
-    <div id="yht-s6" class="yht-step" data-label="Riepilogo" tabindex="-1">6</div>
+    <div id="yht-s6" class="yht-step" data-label="<?php esc_attr_e('Riepilogo', 'your-hidden-trip'); ?>" tabindex="-1">6</div>
     <div class="yht-line"><i id="yht-l6"></i></div>
-    <div id="yht-s7" class="yht-step" data-label="Prenota" tabindex="-1">7</div>
+    <div id="yht-s7" class="yht-step" data-label="<?php esc_attr_e('Prenota', 'your-hidden-trip'); ?>" tabindex="-1">7</div>
   </div>
 
   <!-- STEP 1: Traveler Type -->
   <section id="yht-step1" class="yht-stepview" data-show="true" role="region" aria-labelledby="yht-h2-1">
-    <h2 id="yht-h2-1" class="yht-h2">Che tipo di viaggiatore sei?</h2>
-    <p class="yht-help">Scegli lo stile: incide su tappe al giorno e budget.</p>
-    <div class="yht-grid" role="radiogroup" aria-label="Tipo viaggiatore">
+    <h2 id="yht-h2-1" class="yht-h2"><?php _e('Che tipo di viaggiatore sei?', 'your-hidden-trip'); ?></h2>
+    <p class="yht-help"><?php _e('Scegli lo stile: incide su tappe al giorno e budget.', 'your-hidden-trip'); ?></p>
+    <div class="yht-grid" role="radiogroup" aria-label="<?php esc_attr_e('Tipo viaggiatore', 'your-hidden-trip'); ?>">
       <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="travelerType" data-value="active">
-        <div class="yht-ico">⚡</div><div class="yht-t">Ami fare tante cose</div><div class="yht-d">Ritmo alto (3–4 tappe/giorno)</div>
+        <div class="yht-ico">⚡</div><div class="yht-t"><?php _e('Ami fare tante cose', 'your-hidden-trip'); ?></div><div class="yht-d"><?php _e('Ritmo alto (3–4 tappe/giorno)', 'your-hidden-trip'); ?></div>
       </article>
       <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="travelerType" data-value="relaxed">
-        <div class="yht-ico">☕</div><div class="yht-t">Giornata rilassata</div><div class="yht-d">Ritmo lento (1–2 tappe/giorno)</div>
+        <div class="yht-ico">☕</div><div class="yht-t"><?php _e('Giornata rilassata', 'your-hidden-trip'); ?></div><div class="yht-d"><?php _e('Ritmo lento (1–2 tappe/giorno)', 'your-hidden-trip'); ?></div>
       </article>
     </div>
-    <p id="yht-err1" class="yht-error" aria-live="polite">Seleziona un tipo di viaggiatore.</p>
+    <p id="yht-err1" class="yht-error" aria-live="polite"><?php _e('Seleziona un tipo di viaggiatore.', 'your-hidden-trip'); ?></p>
     <div class="yht-actions">
-      <button class="yht-btn" data-next="1">Prosegui</button>
-      <button class="yht-btn ghost" data-reset="1">Reset</button>
+      <button class="yht-btn" data-next="1"><?php _e('Prosegui', 'your-hidden-trip'); ?></button>
+      <button class="yht-btn ghost" data-reset="1"><?php _e('Reset', 'your-hidden-trip'); ?></button>
     </div>
   </section>
 
   <!-- STEP 2: Experiences -->
   <section id="yht-step2" class="yht-stepview" role="region" aria-labelledby="yht-h2-2">
-    <h2 id="yht-h2-2" class="yht-h2">Che tipo di esperienza cerchi?</h2>
-    <p class="yht-help">Puoi selezionare più opzioni.</p>
-    <div class="yht-grid" role="group" aria-label="Esperienze">
-      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="esperienze" data-value="trekking"><div class="yht-ico">🥾</div><div class="yht-t">Trekking</div><div class="yht-d">Sentieri e natura</div></article>
-      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="esperienze" data-value="passeggiata"><div class="yht-ico">🚶</div><div class="yht-t">Passeggiata</div><div class="yht-d">Percorsi facili</div></article>
-      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="esperienze" data-value="cultura"><div class="yht-ico">🏛️</div><div class="yht-t">Cultura</div><div class="yht-d">Borghi, musei, siti</div></article>
-      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="esperienze" data-value="benessere"><div class="yht-ico">🧖</div><div class="yht-t">Benessere</div><div class="yht-d">Terme e spa</div></article>
-      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="esperienze" data-value="enogastronomia"><div class="yht-ico">🍷</div><div class="yht-t">Enogastronomia</div><div class="yht-d">Cantine e sapori</div></article>
+    <h2 id="yht-h2-2" class="yht-h2"><?php _e('Che tipo di esperienza cerchi?', 'your-hidden-trip'); ?></h2>
+    <p class="yht-help"><?php _e('Puoi selezionare più opzioni.', 'your-hidden-trip'); ?></p>
+    <div class="yht-grid" role="group" aria-label="<?php esc_attr_e('Esperienze', 'your-hidden-trip'); ?>">
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="esperienze" data-value="trekking"><div class="yht-ico">🥾</div><div class="yht-t"><?php _e('Trekking', 'your-hidden-trip'); ?></div><div class="yht-d"><?php _e('Sentieri e natura', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="esperienze" data-value="passeggiata"><div class="yht-ico">🚶</div><div class="yht-t"><?php _e('Passeggiata', 'your-hidden-trip'); ?></div><div class="yht-d"><?php _e('Percorsi facili', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="esperienze" data-value="cultura"><div class="yht-ico">🏛️</div><div class="yht-t"><?php _e('Cultura', 'your-hidden-trip'); ?></div><div class="yht-d"><?php _e('Borghi, musei, siti', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="esperienze" data-value="benessere"><div class="yht-ico">🧖</div><div class="yht-t"><?php _e('Benessere', 'your-hidden-trip'); ?></div><div class="yht-d"><?php _e('Terme e spa', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="esperienze" data-value="enogastronomia"><div class="yht-ico">🍷</div><div class="yht-t"><?php _e('Enogastronomia', 'your-hidden-trip'); ?></div><div class="yht-d"><?php _e('Cantine e sapori', 'your-hidden-trip'); ?></div></article>
     </div>
-    <p id="yht-err2" class="yht-error" aria-live="polite">Seleziona almeno un'esperienza.</p>
+    <p id="yht-err2" class="yht-error" aria-live="polite"><?php _e('Seleziona almeno un\'esperienza.', 'your-hidden-trip'); ?></p>
     <div class="yht-actions">
-      <button class="yht-btn" data-next="2">Prosegui</button>
-      <button class="yht-btn ghost" data-reset="2">Reset</button>
+      <button class="yht-btn" data-next="2"><?php _e('Prosegui', 'your-hidden-trip'); ?></button>
+      <button class="yht-btn ghost" data-reset="2"><?php _e('Reset', 'your-hidden-trip'); ?></button>
     </div>
   </section>
 
   <!-- STEP 3: Areas -->
   <section id="yht-step3" class="yht-stepview" role="region" aria-labelledby="yht-h2-3">
-    <h2 id="yht-h2-3" class="yht-h2">Dove preferisci?</h2>
-    <p class="yht-help">Seleziona aree d'interesse.</p>
-    <div class="yht-grid" role="group" aria-label="Luoghi">
-      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="luogo" data-value="natura"><div class="yht-ico">🌳</div><div class="yht-t">Natura</div></article>
-      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="luogo" data-value="citta"><div class="yht-ico">🏙️</div><div class="yht-t">Città</div></article>
-      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="luogo" data-value="collina"><div class="yht-ico">⛰️</div><div class="yht-t">Collina</div></article>
-      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="luogo" data-value="lago"><div class="yht-ico">🌊</div><div class="yht-t">Lago</div></article>
-      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="luogo" data-value="centro_storico"><div class="yht-ico">🏰</div><div class="yht-t">Centro storico</div></article>
+    <h2 id="yht-h2-3" class="yht-h2"><?php _e('Dove preferisci?', 'your-hidden-trip'); ?></h2>
+    <p class="yht-help"><?php _e('Seleziona aree d\'interesse.', 'your-hidden-trip'); ?></p>
+    <div class="yht-grid" role="group" aria-label="<?php esc_attr_e('Luoghi', 'your-hidden-trip'); ?>">
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="luogo" data-value="natura"><div class="yht-ico">🌳</div><div class="yht-t"><?php _e('Natura', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="luogo" data-value="citta"><div class="yht-ico">🏙️</div><div class="yht-t"><?php _e('Città', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="luogo" data-value="collina"><div class="yht-ico">⛰️</div><div class="yht-t"><?php _e('Collina', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="luogo" data-value="lago"><div class="yht-ico">🌊</div><div class="yht-t"><?php _e('Lago', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="luogo" data-value="centro_storico"><div class="yht-ico">🏰</div><div class="yht-t"><?php _e('Centro storico', 'your-hidden-trip'); ?></div></article>
     </div>
-    <p id="yht-err3" class="yht-error" aria-live="polite">Seleziona almeno un luogo.</p>
+    <p id="yht-err3" class="yht-error" aria-live="polite"><?php _e('Seleziona almeno un luogo.', 'your-hidden-trip'); ?></p>
     <div class="yht-actions">
-      <button class="yht-btn" data-next="3">Prosegui</button>
-      <button class="yht-btn ghost" data-reset="3">Reset</button>
+      <button class="yht-btn" data-next="3"><?php _e('Prosegui', 'your-hidden-trip'); ?></button>
+      <button class="yht-btn ghost" data-reset="3"><?php _e('Reset', 'your-hidden-trip'); ?></button>
     </div>
   </section>
 
   <!-- STEP 4: Transportation (NEW) -->
   <section id="yht-step4" class="yht-stepview" role="region" aria-labelledby="yht-h2-4">
-    <h2 id="yht-h2-4" class="yht-h2">Come preferisci muoverti?</h2>
-    <p class="yht-help">Seleziona la tua preferenza di trasporto per ottimizzare i suggerimenti.</p>
-    <div class="yht-grid" role="radiogroup" aria-label="Trasporto">
+    <h2 id="yht-h2-4" class="yht-h2"><?php _e('Come preferisci muoverti?', 'your-hidden-trip'); ?></h2>
+    <p class="yht-help"><?php _e('Seleziona la tua preferenza di trasporto per ottimizzare i suggerimenti.', 'your-hidden-trip'); ?></p>
+    <div class="yht-grid" role="radiogroup" aria-label="<?php esc_attr_e('Trasporto', 'your-hidden-trip'); ?>">
       <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="trasporto" data-value="auto_propria">
-        <div class="yht-ico">🚗</div><div class="yht-t">Auto propria</div><div class="yht-d">Hai la tua auto</div>
+        <div class="yht-ico">🚗</div><div class="yht-t"><?php _e('Auto propria', 'your-hidden-trip'); ?></div><div class="yht-d"><?php _e('Hai la tua auto', 'your-hidden-trip'); ?></div>
       </article>
       <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="trasporto" data-value="noleggio_auto">
-        <div class="yht-ico">🚙</div><div class="yht-t">Noleggio auto</div><div class="yht-d">Serve auto a noleggio</div>
+        <div class="yht-ico">🚙</div><div class="yht-t"><?php _e('Noleggio auto', 'your-hidden-trip'); ?></div><div class="yht-d"><?php _e('Serve auto a noleggio', 'your-hidden-trip'); ?></div>
       </article>
       <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="trasporto" data-value="autista">
-        <div class="yht-ico">🚖</div><div class="yht-t">Con autista</div><div class="yht-d">Prefer essere guidato</div>
+        <div class="yht-ico">🚖</div><div class="yht-t"><?php _e('Con autista', 'your-hidden-trip'); ?></div><div class="yht-d"><?php _e('Prefer essere guidato', 'your-hidden-trip'); ?></div>
       </article>
     </div>
-    <p id="yht-err4" class="yht-error" aria-live="polite">Seleziona una preferenza di trasporto.</p>
+    <p id="yht-err4" class="yht-error" aria-live="polite"><?php _e('Seleziona una preferenza di trasporto.', 'your-hidden-trip'); ?></p>
     <div class="yht-actions">
-      <button class="yht-btn" data-next="4">Prosegui</button>
-      <button class="yht-btn ghost" data-reset="4">Reset</button>
+      <button class="yht-btn" data-next="4"><?php _e('Prosegui', 'your-hidden-trip'); ?></button>
+      <button class="yht-btn ghost" data-reset="4"><?php _e('Reset', 'your-hidden-trip'); ?></button>
     </div>
   </section>
 
   <!-- STEP 5: Duration & Date -->
   <section id="yht-step5" class="yht-stepview" role="region" aria-labelledby="yht-h2-5">
-    <h2 id="yht-h2-5" class="yht-h2">Quanto tempo hai?</h2>
-    <p class="yht-help">Scegli durata e data di partenza.</p>
-    <div class="yht-grid" role="radiogroup" aria-label="Durata">
-      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="1_notte"><div class="yht-ico">🌙</div><div class="yht-t">1 notte</div></article>
-      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="2_notti"><div class="yht-ico">🌙🌙</div><div class="yht-t">2 notti</div></article>
-      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="3_notti"><div class="yht-ico">🌙🌙🌙</div><div class="yht-t">3 notti</div></article>
-      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="4_notti"><div class="yht-ico">🌙🌙🌙🌙</div><div class="yht-t">4 notti</div></article>
-      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="5+_notti"><div class="yht-ico">🌙+</div><div class="yht-t">5+ notti</div></article>
+    <h2 id="yht-h2-5" class="yht-h2"><?php _e('Quanto tempo hai?', 'your-hidden-trip'); ?></h2>
+    <p class="yht-help"><?php _e('Scegli durata e data di partenza.', 'your-hidden-trip'); ?></p>
+    <div class="yht-grid" role="radiogroup" aria-label="<?php esc_attr_e('Durata', 'your-hidden-trip'); ?>">
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="1_notte"><div class="yht-ico">🌙</div><div class="yht-t"><?php _e('1 notte', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="2_notti"><div class="yht-ico">🌙🌙</div><div class="yht-t"><?php _e('2 notti', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="3_notti"><div class="yht-ico">🌙🌙🌙</div><div class="yht-t"><?php _e('3 notti', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="4_notti"><div class="yht-ico">🌙🌙🌙🌙</div><div class="yht-t"><?php _e('4 notti', 'your-hidden-trip'); ?></div></article>
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="5+_notti"><div class="yht-ico">🌙+</div><div class="yht-t"><?php _e('5+ notti', 'your-hidden-trip'); ?></div></article>
     </div>
     <div class="yht-row yht-mt">
       <div class="yht-col">
-        <label for="yht-startdate" class="yht-small">Data di partenza</label>
+        <label for="yht-startdate" class="yht-small"><?php _e('Data di partenza', 'your-hidden-trip'); ?></label>
         <input id="yht-startdate" class="yht-input" type="date" />
       </div>
       <div class="yht-col">
-        <label for="yht-pax" class="yht-small">Persone</label>
+        <label for="yht-pax" class="yht-small"><?php _e('Persone', 'your-hidden-trip'); ?></label>
         <input id="yht-pax" class="yht-input" type="number" min="1" value="2" />
       </div>
     </div>
-    <p id="yht-err5" class="yht-error" aria-live="polite">Seleziona una durata e la data di partenza.</p>
+    <p id="yht-err5" class="yht-error" aria-live="polite"><?php _e('Seleziona una durata e la data di partenza.', 'your-hidden-trip'); ?></p>
     <div class="yht-actions">
-      <button class="yht-btn" data-next="5">Vai al riepilogo</button>
-      <button class="yht-btn ghost" data-reset="5">Reset</button>
+      <button class="yht-btn" data-next="5"><?php _e('Vai al riepilogo', 'your-hidden-trip'); ?></button>
+      <button class="yht-btn ghost" data-reset="5"><?php _e('Reset', 'your-hidden-trip'); ?></button>
     </div>
   </section>
 
@@ -324,8 +324,8 @@
         
         <div class="recent-bookings">
           <div class="recent-booking">
-            <span class="booking-text">🟢 Marco da Roma ha appena prenotato un tour Premium</span>
-            <span class="booking-time">2 min fa</span>
+            <span class="booking-text"><?php printf(__('🟢 Marco da Roma ha appena prenotato un tour %s', 'your-hidden-trip'), __('Premium', 'your-hidden-trip')); ?></span>
+            <span class="booking-time"><?php printf(__('%s min fa', 'your-hidden-trip'), '2'); ?></span>
           </div>
         </div>
         
@@ -346,38 +346,38 @@
           </div>
           <div class="yht-grid" role="radiogroup" aria-label="Tipo pacchetto">
             <article class="yht-card enhanced-package" tabindex="0" role="radio" aria-checked="false" data-group="packageType" data-value="standard">
-              <div class="package-badge">Più popolare</div>
+              <div class="package-badge"><?php _e('Più popolare', 'your-hidden-trip'); ?></div>
               <div class="yht-ico">⭐</div>
-              <div class="yht-t">Standard</div>
-              <div class="yht-d">Comfort essenziale</div>
+              <div class="yht-t"><?php _e('Standard', 'your-hidden-trip'); ?></div>
+              <div class="yht-d"><?php _e('Comfort essenziale', 'your-hidden-trip'); ?></div>
               <div class="package-features">
-                <span>✓ Alloggio 3★</span>
-                <span>✓ Colazione inclusa</span>
+                <span><?php _e('✓ Alloggio 3★', 'your-hidden-trip'); ?></span>
+                <span><?php _e('✓ Colazione inclusa', 'your-hidden-trip'); ?></span>
               </div>
               <div class="yht-price" id="price-standard">€0</div>
             </article>
             <article class="yht-card enhanced-package" tabindex="0" role="radio" aria-checked="false" data-group="packageType" data-value="premium">
-              <div class="package-badge premium">Consigliato</div>
+              <div class="package-badge premium"><?php _e('Consigliato', 'your-hidden-trip'); ?></div>
               <div class="yht-ico">⭐⭐</div>
-              <div class="yht-t">Premium</div>
-              <div class="yht-d">Esperienza superiore</div>
+              <div class="yht-t"><?php _e('Premium', 'your-hidden-trip'); ?></div>
+              <div class="yht-d"><?php _e('Esperienza superiore', 'your-hidden-trip'); ?></div>
               <div class="package-features">
-                <span>✓ Alloggio 4★</span>
-                <span>✓ Mezza pensione</span>
-                <span>✓ Guide esperte</span>
+                <span><?php _e('✓ Alloggio 4★', 'your-hidden-trip'); ?></span>
+                <span><?php _e('✓ Mezza pensione', 'your-hidden-trip'); ?></span>
+                <span><?php _e('✓ Guide esperte', 'your-hidden-trip'); ?></span>
               </div>
               <div class="yht-price" id="price-premium">€0</div>
             </article>
             <article class="yht-card enhanced-package" tabindex="0" role="radio" aria-checked="false" data-group="packageType" data-value="luxury">
-              <div class="package-badge luxury">Esclusivo</div>
+              <div class="package-badge luxury"><?php _e('Esclusivo', 'your-hidden-trip'); ?></div>
               <div class="yht-ico">⭐⭐⭐</div>
-              <div class="yht-t">Luxury</div>
-              <div class="yht-d">Massimo lusso</div>
+              <div class="yht-t"><?php _e('Luxury', 'your-hidden-trip'); ?></div>
+              <div class="yht-d"><?php _e('Massimo lusso', 'your-hidden-trip'); ?></div>
               <div class="package-features">
-                <span>✓ Alloggio 5★</span>
-                <span>✓ Pensione completa</span>
-                <span>✓ Servizio concierge</span>
-                <span>✓ Transfer privato</span>
+                <span><?php _e('✓ Alloggio 5★', 'your-hidden-trip'); ?></span>
+                <span><?php _e('✓ Pensione completa', 'your-hidden-trip'); ?></span>
+                <span><?php _e('✓ Servizio concierge', 'your-hidden-trip'); ?></span>
+                <span><?php _e('✓ Transfer privato', 'your-hidden-trip'); ?></span>
               </div>
               <div class="yht-price" id="price-luxury">€0</div>
             </article>
@@ -510,6 +510,19 @@
   <script>
     // Enhanced trip builder with transportation options
     const REST = '<?php echo rest_url('yht/v1'); ?>';
+    
+    // Localized strings for JavaScript
+    const yht_i18n = {
+      recent_booking_text: "<?php echo esc_js(__('🟢 %s ha appena prenotato un tour %s', 'your-hidden-trip')); ?>",
+      time_ago: "<?php echo esc_js(__('%s min fa', 'your-hidden-trip')); ?>",
+      spots_left: "<?php echo esc_js(__('Solo <strong>%d posti</strong> rimasti per le tue date!', 'your-hidden-trip')); ?>",
+      system_error: "<?php echo esc_js(__('Errore di sistema', 'your-hidden-trip')); ?>",
+      availability_error: "<?php echo esc_js(__('Non è possibile verificare la disponibilità al momento. Riprova più tardi.', 'your-hidden-trip')); ?>",
+      package_standard: "<?php echo esc_js(__('Standard', 'your-hidden-trip')); ?>",
+      package_premium: "<?php echo esc_js(__('Premium', 'your-hidden-trip')); ?>",
+      package_luxury: "<?php echo esc_js(__('Luxury', 'your-hidden-trip')); ?>"
+    };
+    
     const state = {
       travelerType: '',
       esperienze: [],
@@ -997,8 +1010,8 @@
         console.error('Error checking availability:', error);
         document.getElementById('yht-availability-check').innerHTML = `
           <div class="yht-summary" style="background:#fed7d7;border-color:#f56565;">
-            <h3 style="color:#c53030;">Errore di sistema</h3>
-            <p>Non è possibile verificare la disponibilità al momento. Riprova più tardi.</p>
+            <h3 style="color:#c53030;">${yht_i18n.system_error}</h3>
+            <p>${yht_i18n.availability_error}</p>
           </div>
         `;
       }
@@ -1066,8 +1079,8 @@
       const updateBooking = () => {
         const booking = bookingsData[currentIndex % bookingsData.length];
         container.innerHTML = `
-          <span class="booking-text">🟢 ${booking.name} ha appena prenotato un tour ${booking.package}</span>
-          <span class="booking-time">${booking.time}</span>
+          <span class="booking-text">${yht_i18n.recent_booking_text.replace('%s', booking.name).replace('%s', booking.package)}</span>
+          <span class="booking-time">${yht_i18n.time_ago.replace('%s', booking.time_minutes || booking.time.replace(' min fa', ''))}</span>
         `;
         currentIndex++;
       };
@@ -1078,10 +1091,10 @@
 
     function animateRecentBookings() {
       const bookings = [
-        { name: 'Marco da Roma', package: 'Premium', time: '2 min fa' },
-        { name: 'Laura da Milano', package: 'Luxury', time: '5 min fa' },
-        { name: 'Giuseppe da Napoli', package: 'Standard', time: '8 min fa' },
-        { name: 'Francesca da Firenze', package: 'Premium', time: '12 min fa' }
+        { name: 'Marco da Roma', package: yht_i18n.package_premium, time: '2 min fa' },
+        { name: 'Laura da Milano', package: yht_i18n.package_luxury, time: '5 min fa' },
+        { name: 'Giuseppe da Napoli', package: yht_i18n.package_standard, time: '8 min fa' },
+        { name: 'Francesca da Firenze', package: yht_i18n.package_premium, time: '12 min fa' }
       ];
       
       const container = document.querySelector('.recent-booking');
@@ -1091,8 +1104,8 @@
       setInterval(() => {
         const booking = bookings[currentIndex % bookings.length];
         container.innerHTML = `
-          <span class="booking-text">🟢 ${booking.name} ha appena prenotato un tour ${booking.package}</span>
-          <span class="booking-time">${booking.time}</span>
+          <span class="booking-text">${yht_i18n.recent_booking_text.replace('%s', booking.name).replace('%s', booking.package)}</span>
+          <span class="booking-time">${yht_i18n.time_ago.replace('%s', booking.time.replace(' min fa', ''))}</span>
         `;
         currentIndex++;
       }, 4000);

@@ -20,6 +20,9 @@ class YHT_Shortcode {
     public function render_shortcode($atts) {
         $atts = shortcode_atts(array(), $atts, 'yourhiddentrip_builder');
         
+        // Pass current language to the view for WPML compatibility
+        $current_lang = YHT_Plugin::get_instance()->get_current_language();
+        
         ob_start();
         include YHT_PLUGIN_PATH . 'includes/frontend/views/trip-builder.php';
         return ob_get_clean();

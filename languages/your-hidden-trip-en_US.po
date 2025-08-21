@@ -1,0 +1,297 @@
+# English translation for Your Hidden Trip Plugin
+msgid ""
+msgstr ""
+"Project-Id-Version: Your Hidden Trip Builder\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 12:00+0000\n"
+"PO-Revision-Date: 2024-01-01 12:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: English\n"
+"Language: en_US\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: manual\n"
+
+# Main title
+msgid "Crea il tuo viaggio su misura"
+msgstr "Create your customized trip"
+
+# Step labels
+msgid "Step di compilazione"
+msgstr "Form steps"
+
+msgid "Viaggiatore"
+msgstr "Traveler"
+
+msgid "Esperienze"
+msgstr "Experiences"
+
+msgid "Luogo"
+msgstr "Location"
+
+msgid "Trasporto"
+msgstr "Transport"
+
+msgid "Durata"
+msgstr "Duration"
+
+msgid "Riepilogo"
+msgstr "Summary"
+
+msgid "Prenota"
+msgstr "Book"
+
+# Step 1 - Traveler Type
+msgid "Che tipo di viaggiatore sei?"
+msgstr "What kind of traveler are you?"
+
+msgid "Scegli lo stile: incide su tappe al giorno e budget."
+msgstr "Choose your style: affects daily stops and budget."
+
+msgid "Tipo viaggiatore"
+msgstr "Traveler type"
+
+msgid "Ami fare tante cose"
+msgstr "Love doing many things"
+
+msgid "Ritmo alto (3–4 tappe/giorno)"
+msgstr "High pace (3–4 stops/day)"
+
+msgid "Giornata rilassata"
+msgstr "Relaxed day"
+
+msgid "Ritmo lento (1–2 tappe/giorno)"
+msgstr "Slow pace (1–2 stops/day)"
+
+msgid "Seleziona un tipo di viaggiatore."
+msgstr "Select a traveler type."
+
+# Step 2 - Experiences
+msgid "Che tipo di esperienza cerchi?"
+msgstr "What kind of experience are you looking for?"
+
+msgid "Puoi selezionare più opzioni."
+msgstr "You can select multiple options."
+
+msgid "Trekking"
+msgstr "Trekking"
+
+msgid "Sentieri e natura"
+msgstr "Trails and nature"
+
+msgid "Passeggiata"
+msgstr "Walk"
+
+msgid "Percorsi facili"
+msgstr "Easy routes"
+
+msgid "Cultura"
+msgstr "Culture"
+
+msgid "Borghi, musei, siti"
+msgstr "Villages, museums, sites"
+
+msgid "Benessere"
+msgstr "Wellness"
+
+msgid "Terme e spa"
+msgstr "Thermal baths and spa"
+
+msgid "Enogastronomia"
+msgstr "Food & Wine"
+
+msgid "Cantine e sapori"
+msgstr "Wineries and flavors"
+
+msgid "Seleziona almeno un'esperienza."
+msgstr "Select at least one experience."
+
+# Step 3 - Places
+msgid "Dove preferisci?"
+msgstr "Where do you prefer?"
+
+msgid "Seleziona aree d'interesse."
+msgstr "Select areas of interest."
+
+msgid "Luoghi"
+msgstr "Places"
+
+msgid "Natura"
+msgstr "Nature"
+
+msgid "Città"
+msgstr "City"
+
+msgid "Collina"
+msgstr "Hills"
+
+msgid "Lago"
+msgstr "Lake"
+
+msgid "Centro storico"
+msgstr "Historic center"
+
+msgid "Seleziona almeno un luogo."
+msgstr "Select at least one place."
+
+# Step 4 - Transport
+msgid "Come preferisci muoverti?"
+msgstr "How do you prefer to travel?"
+
+msgid "Seleziona la tua preferenza di trasporto per ottimizzare i suggerimenti."
+msgstr "Select your transport preference to optimize suggestions."
+
+msgid "Auto propria"
+msgstr "Own car"
+
+msgid "Hai la tua auto"
+msgstr "You have your own car"
+
+msgid "Noleggio auto"
+msgstr "Car rental"
+
+msgid "Serve auto a noleggio"
+msgstr "Need rental car"
+
+msgid "Con autista"
+msgstr "With driver"
+
+msgid "Prefer essere guidato"
+msgstr "Prefer being driven"
+
+msgid "Seleziona una preferenza di trasporto."
+msgstr "Select a transport preference."
+
+# Step 5 - Duration
+msgid "Quanto tempo hai?"
+msgstr "How much time do you have?"
+
+msgid "Scegli durata e data di partenza."
+msgstr "Choose duration and departure date."
+
+msgid "1 notte"
+msgstr "1 night"
+
+msgid "2 notti"
+msgstr "2 nights"
+
+msgid "3 notti"
+msgstr "3 nights"
+
+msgid "4 notti"
+msgstr "4 nights"
+
+msgid "5+ notti"
+msgstr "5+ nights"
+
+msgid "Data di partenza"
+msgstr "Departure date"
+
+msgid "Persone"
+msgstr "People"
+
+msgid "Seleziona una durata e la data di partenza."
+msgstr "Select duration and departure date."
+
+# Package types
+msgid "Più popolare"
+msgstr "Most Popular"
+
+msgid "Standard"
+msgstr "Standard"
+
+msgid "Comfort essenziale"
+msgstr "Essential comfort"
+
+msgid "✓ Alloggio 3★"
+msgstr "✓ 3★ Accommodation"
+
+msgid "✓ Colazione inclusa"
+msgstr "✓ Breakfast included"
+
+msgid "Consigliato"
+msgstr "Recommended"
+
+msgid "Premium"
+msgstr "Premium"
+
+msgid "Esperienza superiore"
+msgstr "Superior experience"
+
+msgid "✓ Alloggio 4★"
+msgstr "✓ 4★ Accommodation"
+
+msgid "✓ Mezza pensione"
+msgstr "✓ Half board"
+
+msgid "✓ Guide esperte"
+msgstr "✓ Expert guides"
+
+msgid "Esclusivo"
+msgstr "Exclusive"
+
+msgid "Luxury"
+msgstr "Luxury"
+
+msgid "Massimo lusso"
+msgstr "Maximum luxury"
+
+msgid "✓ Alloggio 5★"
+msgstr "✓ 5★ Accommodation"
+
+msgid "✓ Pensione completa"
+msgstr "✓ Full board"
+
+msgid "✓ Servizio concierge"
+msgstr "✓ Concierge service"
+
+msgid "✓ Transfer privato"
+msgstr "✓ Private transfer"
+
+# Common buttons and actions
+msgid "Prosegui"
+msgstr "Continue"
+
+msgid "Indietro"
+msgstr "Back"
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "Vai al riepilogo"
+msgstr "Go to summary"
+
+# Booking and dynamic content
+msgid "🟢 %s ha appena prenotato un tour %s"
+msgstr "🟢 %s just booked a %s tour"
+
+msgid "%s min fa"
+msgstr "%s min ago"
+
+msgid "Solo <strong>%d posti</strong> rimasti per le tue date!"
+msgstr "Only <strong>%d spots</strong> left for your dates!"
+
+# Error messages
+msgid "Errore di sistema"
+msgstr "System error"
+
+msgid "Non è possibile verificare la disponibilità al momento. Riprova più tardi."
+msgstr "Cannot verify availability at the moment. Please try again later."
+
+# API Error messages
+msgid "WooCommerce non attivo"
+msgstr "WooCommerce not active"
+
+msgid "Campo richiesto mancante: %s"
+msgstr "Required field missing: %s"
+
+msgid "Il pacchetto non è disponibile per le date selezionate."
+msgstr "The package is not available for the selected dates."
+
+msgid "Errore nella creazione della prenotazione"
+msgstr "Error creating booking"
+
+msgid "Prenotazione creata ma errore nel sistema di pagamento: %s"
+msgstr "Booking created but payment system error: %s"

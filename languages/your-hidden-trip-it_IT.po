@@ -1,0 +1,297 @@
+# Italian translation for Your Hidden Trip Plugin
+msgid ""
+msgstr ""
+"Project-Id-Version: Your Hidden Trip Builder\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-01-01 12:00+0000\n"
+"PO-Revision-Date: 2024-01-01 12:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Italian\n"
+"Language: it_IT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: manual\n"
+
+# Main title
+msgid "Crea il tuo viaggio su misura"
+msgstr "Crea il tuo viaggio su misura"
+
+# Step labels
+msgid "Step di compilazione"
+msgstr "Step di compilazione"
+
+msgid "Viaggiatore"
+msgstr "Viaggiatore"
+
+msgid "Esperienze"
+msgstr "Esperienze"
+
+msgid "Luogo"
+msgstr "Luogo"
+
+msgid "Trasporto"
+msgstr "Trasporto"
+
+msgid "Durata"
+msgstr "Durata"
+
+msgid "Riepilogo"
+msgstr "Riepilogo"
+
+msgid "Prenota"
+msgstr "Prenota"
+
+# Step 1 - Traveler Type
+msgid "Che tipo di viaggiatore sei?"
+msgstr "Che tipo di viaggiatore sei?"
+
+msgid "Scegli lo stile: incide su tappe al giorno e budget."
+msgstr "Scegli lo stile: incide su tappe al giorno e budget."
+
+msgid "Tipo viaggiatore"
+msgstr "Tipo viaggiatore"
+
+msgid "Ami fare tante cose"
+msgstr "Ami fare tante cose"
+
+msgid "Ritmo alto (3–4 tappe/giorno)"
+msgstr "Ritmo alto (3–4 tappe/giorno)"
+
+msgid "Giornata rilassata"
+msgstr "Giornata rilassata"
+
+msgid "Ritmo lento (1–2 tappe/giorno)"
+msgstr "Ritmo lento (1–2 tappe/giorno)"
+
+msgid "Seleziona un tipo di viaggiatore."
+msgstr "Seleziona un tipo di viaggiatore."
+
+# Step 2 - Experiences
+msgid "Che tipo di esperienza cerchi?"
+msgstr "Che tipo di esperienza cerchi?"
+
+msgid "Puoi selezionare più opzioni."
+msgstr "Puoi selezionare più opzioni."
+
+msgid "Trekking"
+msgstr "Trekking"
+
+msgid "Sentieri e natura"
+msgstr "Sentieri e natura"
+
+msgid "Passeggiata"
+msgstr "Passeggiata"
+
+msgid "Percorsi facili"
+msgstr "Percorsi facili"
+
+msgid "Cultura"
+msgstr "Cultura"
+
+msgid "Borghi, musei, siti"
+msgstr "Borghi, musei, siti"
+
+msgid "Benessere"
+msgstr "Benessere"
+
+msgid "Terme e spa"
+msgstr "Terme e spa"
+
+msgid "Enogastronomia"
+msgstr "Enogastronomia"
+
+msgid "Cantine e sapori"
+msgstr "Cantine e sapori"
+
+msgid "Seleziona almeno un'esperienza."
+msgstr "Seleziona almeno un'esperienza."
+
+# Step 3 - Places
+msgid "Dove preferisci?"
+msgstr "Dove preferisci?"
+
+msgid "Seleziona aree d'interesse."
+msgstr "Seleziona aree d'interesse."
+
+msgid "Luoghi"
+msgstr "Luoghi"
+
+msgid "Natura"
+msgstr "Natura"
+
+msgid "Città"
+msgstr "Città"
+
+msgid "Collina"
+msgstr "Collina"
+
+msgid "Lago"
+msgstr "Lago"
+
+msgid "Centro storico"
+msgstr "Centro storico"
+
+msgid "Seleziona almeno un luogo."
+msgstr "Seleziona almeno un luogo."
+
+# Step 4 - Transport
+msgid "Come preferisci muoverti?"
+msgstr "Come preferisci muoverti?"
+
+msgid "Seleziona la tua preferenza di trasporto per ottimizzare i suggerimenti."
+msgstr "Seleziona la tua preferenza di trasporto per ottimizzare i suggerimenti."
+
+msgid "Auto propria"
+msgstr "Auto propria"
+
+msgid "Hai la tua auto"
+msgstr "Hai la tua auto"
+
+msgid "Noleggio auto"
+msgstr "Noleggio auto"
+
+msgid "Serve auto a noleggio"
+msgstr "Serve auto a noleggio"
+
+msgid "Con autista"
+msgstr "Con autista"
+
+msgid "Prefer essere guidato"
+msgstr "Prefer essere guidato"
+
+msgid "Seleziona una preferenza di trasporto."
+msgstr "Seleziona una preferenza di trasporto."
+
+# Step 5 - Duration
+msgid "Quanto tempo hai?"
+msgstr "Quanto tempo hai?"
+
+msgid "Scegli durata e data di partenza."
+msgstr "Scegli durata e data di partenza."
+
+msgid "1 notte"
+msgstr "1 notte"
+
+msgid "2 notti"
+msgstr "2 notti"
+
+msgid "3 notti"
+msgstr "3 notti"
+
+msgid "4 notti"
+msgstr "4 notti"
+
+msgid "5+ notti"
+msgstr "5+ notti"
+
+msgid "Data di partenza"
+msgstr "Data di partenza"
+
+msgid "Persone"
+msgstr "Persone"
+
+msgid "Seleziona una durata e la data di partenza."
+msgstr "Seleziona una durata e la data di partenza."
+
+# Package types
+msgid "Più popolare"
+msgstr "Più popolare"
+
+msgid "Standard"
+msgstr "Standard"
+
+msgid "Comfort essenziale"
+msgstr "Comfort essenziale"
+
+msgid "✓ Alloggio 3★"
+msgstr "✓ Alloggio 3★"
+
+msgid "✓ Colazione inclusa"
+msgstr "✓ Colazione inclusa"
+
+msgid "Consigliato"
+msgstr "Consigliato"
+
+msgid "Premium"
+msgstr "Premium"
+
+msgid "Esperienza superiore"
+msgstr "Esperienza superiore"
+
+msgid "✓ Alloggio 4★"
+msgstr "✓ Alloggio 4★"
+
+msgid "✓ Mezza pensione"
+msgstr "✓ Mezza pensione"
+
+msgid "✓ Guide esperte"
+msgstr "✓ Guide esperte"
+
+msgid "Esclusivo"
+msgstr "Esclusivo"
+
+msgid "Luxury"
+msgstr "Luxury"
+
+msgid "Massimo lusso"
+msgstr "Massimo lusso"
+
+msgid "✓ Alloggio 5★"
+msgstr "✓ Alloggio 5★"
+
+msgid "✓ Pensione completa"
+msgstr "✓ Pensione completa"
+
+msgid "✓ Servizio concierge"
+msgstr "✓ Servizio concierge"
+
+msgid "✓ Transfer privato"
+msgstr "✓ Transfer privato"
+
+# Common buttons and actions
+msgid "Prosegui"
+msgstr "Prosegui"
+
+msgid "Indietro"
+msgstr "Indietro"
+
+msgid "Reset"
+msgstr "Reset"
+
+msgid "Vai al riepilogo"
+msgstr "Vai al riepilogo"
+
+# Booking and dynamic content
+msgid "🟢 %s ha appena prenotato un tour %s"
+msgstr "🟢 %s ha appena prenotato un tour %s"
+
+msgid "%s min fa"
+msgstr "%s min fa"
+
+msgid "Solo <strong>%d posti</strong> rimasti per le tue date!"
+msgstr "Solo <strong>%d posti</strong> rimasti per le tue date!"
+
+# Error messages
+msgid "Errore di sistema"
+msgstr "Errore di sistema"
+
+msgid "Non è possibile verificare la disponibilità al momento. Riprova più tardi."
+msgstr "Non è possibile verificare la disponibilità al momento. Riprova più tardi."
+
+# API Error messages
+msgid "WooCommerce non attivo"
+msgstr "WooCommerce non attivo"
+
+msgid "Campo richiesto mancante: %s"
+msgstr "Campo richiesto mancante: %s"
+
+msgid "Il pacchetto non è disponibile per le date selezionate."
+msgstr "Il pacchetto non è disponibile per le date selezionate."
+
+msgid "Errore nella creazione della prenotazione"
+msgstr "Errore nella creazione della prenotazione"
+
+msgid "Prenotazione creata ma errore nel sistema di pagamento: %s"
+msgstr "Prenotazione creata ma errore nel sistema di pagamento: %s"
