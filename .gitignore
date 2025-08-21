@@ -1,0 +1,31 @@
+# Temporary files
+temp-*.php
+your-hidden-trip-planner-original.php
+
+# Development files
+*.log
+.DS_Store
+Thumbs.db
+
+# Vendor libraries (if using composer)
+vendor/
+node_modules/
+
+# Build artifacts
+dist/
+build/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
