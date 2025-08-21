@@ -40,6 +40,25 @@ class YHT_Rest_Controller {
             'callback' => array($this, 'generate_pdf'),
             'permission_callback' => '__return_true'
         ));
+
+        // New booking endpoints
+        register_rest_route('yht/v1','/book_package', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'book_package'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route('yht/v1','/calculate_price', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'calculate_package_price'),
+            'permission_callback' => '__return_true'
+        ));
+
+        register_rest_route('yht/v1','/check_availability', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'check_availability'),
+            'permission_callback' => '__return_true'
+        ));
     }
     
     /**
@@ -204,5 +223,323 @@ class YHT_Rest_Controller {
         }
         
         return $description;
+    }
+    
+    /**
+     * Calculate package price endpoint
+     */
+    public function calculate_package_price(WP_REST_Request $request) {
+        $params = $request->get_json_params();
+        $tour = $params['tour'] ?? array();
+        $package_type = sanitize_text_field($params['package_type'] ?? 'standard');
+        $num_pax = max(1, intval($params['num_pax'] ?? 2));
+        $travel_date = sanitize_text_field($params['travel_date'] ?? '');
+        
+        $calculation = $this->calculate_all_inclusive_price($tour, $package_type, $num_pax, $travel_date);
+        
+        return rest_ensure_response($calculation);
+    }
+    
+    /**
+     * Check availability endpoint
+     */
+    public function check_availability(WP_REST_Request $request) {
+        $params = $request->get_json_params();
+        $tour = $params['tour'] ?? array();
+        $travel_date = sanitize_text_field($params['travel_date'] ?? '');
+        $num_pax = max(1, intval($params['num_pax'] ?? 2));
+        
+        $availability = $this->check_tour_availability($tour, $travel_date, $num_pax);
+        
+        return rest_ensure_response($availability);
+    }
+    
+    /**
+     * Book package endpoint
+     */
+    public function book_package(WP_REST_Request $request) {
+        $params = $request->get_json_params();
+        
+        // Validate required fields
+        $required_fields = array('customer_name', 'customer_email', 'tour', 'travel_date', 'num_pax');
+        foreach($required_fields as $field) {
+            if(empty($params[$field])) {
+                return rest_ensure_response(array(
+                    'ok' => false,
+                    'message' => "Campo richiesto mancante: $field"
+                ));
+            }
+        }
+        
+        $customer_name = sanitize_text_field($params['customer_name']);
+        $customer_email = sanitize_email($params['customer_email']);
+        $customer_phone = sanitize_text_field($params['customer_phone'] ?? '');
+        $tour = $params['tour'];
+        $travel_date = sanitize_text_field($params['travel_date']);
+        $num_pax = max(1, intval($params['num_pax']));
+        $package_type = sanitize_text_field($params['package_type'] ?? 'standard');
+        $special_requests = sanitize_textarea_field($params['special_requests'] ?? '');
+        
+        // Check availability first
+        $availability = $this->check_tour_availability($tour, $travel_date, $num_pax);
+        if(!$availability['available']) {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Il pacchetto non è disponibile per le date selezionate.'
+            ));
+        }
+        
+        // Calculate pricing
+        $pricing = $this->calculate_all_inclusive_price($tour, $package_type, $num_pax, $travel_date);
+        
+        // Generate booking reference
+        $booking_reference = 'YHT-' . strtoupper(wp_generate_password(8, false));
+        
+        // Create booking post
+        $booking_id = wp_insert_post(array(
+            'post_type' => 'yht_booking',
+            'post_title' => "Prenotazione $booking_reference - $customer_name",
+            'post_status' => 'publish',
+            'post_content' => "Prenotazione per {$tour['name']} - $num_pax persone"
+        ));
+        
+        if(is_wp_error($booking_id)) {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Errore nella creazione della prenotazione'
+            ));
+        }
+        
+        // Save booking meta
+        update_post_meta($booking_id, 'yht_customer_name', $customer_name);
+        update_post_meta($booking_id, 'yht_customer_email', $customer_email);
+        update_post_meta($booking_id, 'yht_customer_phone', $customer_phone);
+        update_post_meta($booking_id, 'yht_booking_status', 'pending_payment');
+        update_post_meta($booking_id, 'yht_booking_reference', $booking_reference);
+        update_post_meta($booking_id, 'yht_total_price', $pricing['total']);
+        update_post_meta($booking_id, 'yht_deposit_paid', '0');
+        update_post_meta($booking_id, 'yht_travel_date', $travel_date);
+        update_post_meta($booking_id, 'yht_num_pax', $num_pax);
+        update_post_meta($booking_id, 'yht_package_type', $package_type);
+        update_post_meta($booking_id, 'yht_itinerary_json', wp_json_encode($tour));
+        update_post_meta($booking_id, 'yht_special_requests', $special_requests);
+        
+        // Create WooCommerce product for payment
+        $wc_result = $this->create_wc_product_from_booking($booking_id, $tour, $pricing, $num_pax);
+        
+        if($wc_result['ok']) {
+            update_post_meta($booking_id, 'yht_wc_order_id', $wc_result['product_id']);
+            
+            // Send confirmation email
+            $this->send_booking_confirmation_email($booking_id);
+            
+            return rest_ensure_response(array(
+                'ok' => true,
+                'booking_id' => $booking_id,
+                'booking_reference' => $booking_reference,
+                'wc_product_id' => $wc_result['product_id'],
+                'wc_checkout_url' => wc_get_checkout_url() . '?add-to-cart=' . $wc_result['product_id'],
+                'total_price' => $pricing['total'],
+                'deposit_amount' => $pricing['deposit']
+            ));
+        } else {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Prenotazione creata ma errore nel sistema di pagamento: ' . $wc_result['message']
+            ));
+        }
+    }
+    
+    /**
+     * Calculate all-inclusive price for a tour
+     */
+    private function calculate_all_inclusive_price($tour, $package_type, $num_pax, $travel_date) {
+        $total = 0;
+        $breakdown = array();
+        
+        // Base tour price multiplier by package type
+        $multipliers = array(
+            'standard' => 1.0,
+            'premium' => 1.3,
+            'luxury' => 1.7
+        );
+        $multiplier = $multipliers[$package_type] ?? 1.0;
+        
+        // Calculate accommodation costs
+        if(!empty($tour['accommodations'])) {
+            $accommodation_cost = 0;
+            foreach($tour['accommodations'] as $acc) {
+                $price_field = "yht_prezzo_notte_$package_type";
+                $price_per_night = (float)get_post_meta($acc['id'], $price_field, true);
+                if(!$price_per_night) {
+                    $price_per_night = (float)get_post_meta($acc['id'], 'yht_prezzo_notte_standard', true);
+                }
+                $accommodation_cost += $price_per_night * ($tour['days'] ?? 1);
+            }
+            $total += $accommodation_cost * $num_pax;
+            $breakdown['accommodation'] = $accommodation_cost * $num_pax;
+        }
+        
+        // Calculate activities/places costs
+        if(!empty($tour['days'])) {
+            $activities_cost = 0;
+            foreach($tour['days'] as $day) {
+                if(!empty($day['stops'])) {
+                    foreach($day['stops'] as $stop) {
+                        $entry_cost = (float)($stop['cost'] ?? 0);
+                        $activities_cost += $entry_cost * $multiplier;
+                    }
+                }
+            }
+            $total += $activities_cost * $num_pax;
+            $breakdown['activities'] = $activities_cost * $num_pax;
+        }
+        
+        // Calculate meals (restaurants/services)
+        if(!empty($tour['services'])) {
+            $meals_cost = 0;
+            foreach($tour['services'] as $service) {
+                if(in_array('ristorante', $service['service_type'] ?? array())) {
+                    $meal_price = (float)get_post_meta($service['id'], 'yht_prezzo_persona', true);
+                    if(!$meal_price) $meal_price = 25; // Default meal price
+                    $meals_cost += $meal_price * $multiplier;
+                }
+            }
+            $total += $meals_cost * $num_pax;
+            $breakdown['meals'] = $meals_cost * $num_pax;
+        }
+        
+        // Transport costs (basic inclusion)
+        $transport_cost = 50 * $multiplier; // Base transport cost per person
+        $total += $transport_cost * $num_pax;
+        $breakdown['transport'] = $transport_cost * $num_pax;
+        
+        // Service fees and markup
+        $service_fee = $total * 0.1; // 10% service fee
+        $total += $service_fee;
+        $breakdown['service_fee'] = $service_fee;
+        
+        // Calculate deposit (20% of total)
+        $settings = YHT_Plugin::get_instance()->get_settings();
+        $deposit_pct = (float)($settings['wc_deposit_pct'] ?? 20) / 100;
+        $deposit = $total * $deposit_pct;
+        
+        return array(
+            'ok' => true,
+            'total' => round($total, 2),
+            'deposit' => round($deposit, 2),
+            'balance' => round($total - $deposit, 2),
+            'breakdown' => $breakdown,
+            'package_type' => $package_type,
+            'num_pax' => $num_pax
+        );
+    }
+    
+    /**
+     * Check tour availability for given date and pax
+     */
+    private function check_tour_availability($tour, $travel_date, $num_pax) {
+        $available = true;
+        $messages = array();
+        
+        // Check accommodation availability
+        if(!empty($tour['accommodations'])) {
+            foreach($tour['accommodations'] as $acc) {
+                $availability_json = get_post_meta($acc['id'], 'yht_disponibilita_json', true);
+                if($availability_json) {
+                    $availability_data = json_decode($availability_json, true);
+                    // Simple availability check - could be enhanced
+                    foreach($availability_data as $period) {
+                        if($travel_date >= $period['start'] && $travel_date <= $period['end']) {
+                            if($period['available_rooms'] < 1) {
+                                $available = false;
+                                $messages[] = "Alloggio {$acc['title']} non disponibile per la data selezionata";
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Check service capacity
+        if(!empty($tour['services'])) {
+            foreach($tour['services'] as $service) {
+                $max_capacity = (int)get_post_meta($service['id'], 'yht_capacita_max', true);
+                if($max_capacity && $max_capacity < $num_pax) {
+                    $available = false;
+                    $messages[] = "Servizio {$service['title']} ha capacità massima di $max_capacity persone";
+                }
+            }
+        }
+        
+        return array(
+            'available' => $available,
+            'messages' => $messages,
+            'travel_date' => $travel_date,
+            'num_pax' => $num_pax
+        );
+    }
+    
+    /**
+     * Create WooCommerce product from booking
+     */
+    private function create_wc_product_from_booking($booking_id, $tour, $pricing, $num_pax) {
+        if(!class_exists('WC_Product_Simple')) {
+            return array('ok' => false, 'message' => 'WooCommerce non attivo');
+        }
+        
+        $booking_reference = get_post_meta($booking_id, 'yht_booking_reference', true);
+        $package_type = get_post_meta($booking_id, 'yht_package_type', true);
+        
+        $title = $tour['name'] . " - $package_type ($num_pax pax)";
+        $description = $this->build_tour_description($tour);
+        $description .= "\n\nPacchetto All-Inclusive:\n";
+        $description .= "- Alloggio in " . ucfirst($package_type) . "\n";
+        $description .= "- Tutti i pasti inclusi\n";
+        $description .= "- Trasporti inclusi\n";
+        $description .= "- Attività ed escursioni\n";
+        $description .= "- Assistenza dedicata\n";
+        $description .= "\nRiferimento prenotazione: $booking_reference";
+
+        $product = new WC_Product_Simple();
+        $product->set_name($title);
+        $product->set_regular_price($pricing['total']);
+        $product->set_catalog_visibility('hidden');
+        $product->set_description($description);
+        $product->set_short_description("Pacchetto All-Inclusive $package_type per {$tour['name']}");
+        $product->save();
+
+        return array(
+            'ok' => true,
+            'product_id' => $product->get_id(),
+            'price' => $pricing['total']
+        );
+    }
+    
+    /**
+     * Send booking confirmation email
+     */
+    private function send_booking_confirmation_email($booking_id) {
+        $customer_email = get_post_meta($booking_id, 'yht_customer_email', true);
+        $customer_name = get_post_meta($booking_id, 'yht_customer_name', true);
+        $booking_reference = get_post_meta($booking_id, 'yht_booking_reference', true);
+        $total_price = get_post_meta($booking_id, 'yht_total_price', true);
+        
+        $subject = "Conferma Prenotazione $booking_reference - Your Hidden Trip";
+        $message = "Caro/a $customer_name,\n\n";
+        $message .= "La tua prenotazione è stata registrata con successo!\n\n";
+        $message .= "Dettagli prenotazione:\n";
+        $message .= "Riferimento: $booking_reference\n";
+        $message .= "Importo totale: €$total_price\n\n";
+        $message .= "Ti contatteremo a breve per finalizzare i dettagli del tuo viaggio.\n\n";
+        $message .= "Grazie per aver scelto Your Hidden Trip!";
+        
+        wp_mail($customer_email, $subject, $message);
+        
+        // Also notify admin
+        $settings = YHT_Plugin::get_instance()->get_settings();
+        $admin_email = $settings['notify_email'];
+        wp_mail($admin_email, "Nuova Prenotazione: $booking_reference", 
+                "Nuova prenotazione ricevuta da $customer_name ($customer_email)");
     }
 }

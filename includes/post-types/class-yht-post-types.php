@@ -70,6 +70,27 @@ class YHT_Post_Types {
             'menu_icon' => 'dashicons-groups',
             'supports' => array('title','editor','thumbnail'),
         ));
+
+        // CPT Bookings (for managing customer bookings)
+        register_post_type('yht_booking', array(
+            'label' => 'Prenotazioni',
+            'labels' => array(
+                'name' => 'Prenotazioni',
+                'singular_name' => 'Prenotazione',
+                'add_new' => 'Aggiungi Prenotazione',
+                'add_new_item' => 'Nuova Prenotazione',
+                'edit_item' => 'Modifica Prenotazione'
+            ),
+            'public' => false,
+            'show_ui' => true,
+            'show_in_rest' => true,
+            'menu_icon' => 'dashicons-calendar-alt',
+            'supports' => array('title','editor'),
+            'capabilities' => array(
+                'create_posts' => 'manage_woocommerce'
+            ),
+            'map_meta_cap' => true
+        ));
     }
     
     /**
@@ -108,20 +129,36 @@ class YHT_Post_Types {
         register_post_meta('yht_luogo','yht_accesso_pet',$meta_s);
         register_post_meta('yht_luogo','yht_accesso_mobility',$meta_s);
 
-        // Alloggi
-        $alloggio_fields = array('yht_lat','yht_lng','yht_fascia_prezzo','yht_servizi_json','yht_capienza');
+        // Alloggi - Enhanced with all-inclusive pricing
+        $alloggio_fields = array('yht_lat','yht_lng','yht_fascia_prezzo','yht_servizi_json','yht_capienza', 
+                                'yht_prezzo_notte_standard','yht_prezzo_notte_premium','yht_prezzo_notte_luxury',
+                                'yht_incluso_colazione','yht_incluso_pranzo','yht_incluso_cena','yht_disponibilita_json');
         foreach($alloggio_fields as $field) {
             register_post_meta('yht_alloggio', $field, $meta_s);
         }
 
-        // Tour curati
+        // Tour curati - Enhanced pricing
         register_post_meta('yht_tour','yht_giorni',$meta_s);       // JSON dei giorni
         register_post_meta('yht_tour','yht_prezzo_base',$meta_s);  // float
+        register_post_meta('yht_tour','yht_prezzo_standard_pax',$meta_s);
+        register_post_meta('yht_tour','yht_prezzo_premium_pax',$meta_s);
+        register_post_meta('yht_tour','yht_prezzo_luxury_pax',$meta_s);
 
-        // Servizi
-        $servizio_fields = array('yht_lat','yht_lng','yht_fascia_prezzo','yht_orari','yht_telefono','yht_sito_web');
+        // Servizi - Enhanced with activity pricing
+        $servizio_fields = array('yht_lat','yht_lng','yht_fascia_prezzo','yht_orari','yht_telefono','yht_sito_web',
+                                'yht_prezzo_persona','yht_prezzo_fisso','yht_durata_servizio','yht_capacita_max',
+                                'yht_prenotazione_richiesta','yht_disponibilita_json');
         foreach($servizio_fields as $field) {
             register_post_meta('yht_servizio', $field, $meta_s);
+        }
+
+        // Bookings 
+        $booking_fields = array('yht_customer_name','yht_customer_email','yht_customer_phone',
+                              'yht_booking_status','yht_booking_reference','yht_total_price','yht_deposit_paid',
+                              'yht_travel_date','yht_num_pax','yht_package_type','yht_itinerary_json',
+                              'yht_wc_order_id','yht_special_requests');
+        foreach($booking_fields as $field) {
+            register_post_meta('yht_booking', $field, $meta_s);
         }
     }
     
