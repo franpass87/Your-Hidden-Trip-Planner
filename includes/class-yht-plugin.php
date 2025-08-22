@@ -147,6 +147,16 @@ class YHT_Plugin {
         if (is_admin()) {
             require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-admin.php';
             new YHT_Admin();
+            
+            // Load backend management components
+            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-dashboard.php';
+            new YHT_Dashboard();
+            
+            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-customer-manager.php';
+            new YHT_Customer_Manager();
+            
+            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-system-health.php';
+            new YHT_System_Health();
         }
     }
     
