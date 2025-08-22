@@ -128,6 +128,8 @@ class YHT_Plugin {
         $this->load_rest_api();
         $this->load_frontend();
         $this->load_utilities();
+        $this->load_analytics();
+        $this->load_security();
     }
     
     /**
@@ -174,6 +176,22 @@ class YHT_Plugin {
      */
     private function load_utilities() {
         require_once YHT_PLUGIN_PATH . 'includes/utilities/class-yht-helpers.php';
+    }
+    
+    /**
+     * Load analytics module
+     */
+    private function load_analytics() {
+        require_once YHT_PLUGIN_PATH . 'includes/analytics/class-yht-analytics.php';
+        new YHT_Analytics();
+    }
+    
+    /**
+     * Load security module
+     */
+    private function load_security() {
+        require_once YHT_PLUGIN_PATH . 'includes/security/class-yht-security.php';
+        new YHT_Security();
     }
     
     /**
