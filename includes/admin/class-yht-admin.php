@@ -53,6 +53,15 @@ class YHT_Admin {
             'yht_bookings',
             array($this, 'bookings_page')
         );
+        
+        add_submenu_page(
+            'yht_admin',
+            'Analytics Dashboard',
+            'Analytics',
+            'manage_options',
+            'yht_analytics',
+            array($this, 'analytics_page')
+        );
     }
     
     /**
@@ -140,5 +149,24 @@ class YHT_Admin {
         }
         
         echo '</div>';
+    }
+    
+    /**
+     * Analytics dashboard page
+     */
+    public function analytics_page() {
+        // Check if analytics is enabled
+        $settings = get_option('yht_settings', array());
+        if (!isset($settings['analytics_enabled']) || !$settings['analytics_enabled']) {
+            echo '<div class="wrap">';
+            echo '<h1>Analytics Dashboard</h1>';
+            echo '<div class="notice notice-warning">';
+            echo '<p><strong>Analytics is disabled.</strong> Please enable analytics in the <a href="' . admin_url('admin.php?page=yht_admin') . '">plugin settings</a> to view the dashboard.</p>';
+            echo '</div>';
+            echo '</div>';
+            return;
+        }
+        
+        include YHT_PLUGIN_PATH . 'includes/admin/views/analytics-dashboard.php';
     }
 }
