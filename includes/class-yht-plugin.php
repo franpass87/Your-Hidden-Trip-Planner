@@ -157,6 +157,21 @@ class YHT_Plugin {
             
             require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-system-health.php';
             new YHT_System_Health();
+            
+            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-email-templates.php';
+            new YHT_Email_Templates();
+            
+            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-advanced-reports.php';
+            new YHT_Advanced_Reports();
+            
+            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-api-manager.php';
+            new YHT_API_Manager();
+            
+            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-backup-restore.php';
+            new YHT_Backup_Restore();
+            
+            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-user-roles.php';
+            new YHT_User_Roles();
         }
     }
     
