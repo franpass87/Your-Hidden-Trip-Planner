@@ -1,8 +1,11 @@
 <?php
 /**
- * Plugin Name: Your Hidden Trip Builder (v6.2 No-ACF)
- * Description: Trip builder reale per Tuscia & Umbria: CPT, tassonomie, importer, generatore tour da CPT, mappa inline (light), lead Brevo, export JSON/ICS/PDF (dompdf), WooCommerce package, share link, GA4 dataLayer.
- * Version: 6.2
+ * Temporary fixed file (DEPRECATED - v6.2 No-ACF)
+ * This is a temporary file and should not be treated as a plugin.
+ * The main plugin is now handled by your-hidden-trip-planner.php (v6.3)
+ * 
+ * Original Description: Trip builder reale per Tuscia & Umbria: CPT, tassonomie, importer, generatore tour da CPT, mappa inline (light), lead Brevo, export JSON/ICS/PDF (dompdf), WooCommerce package, share link, GA4 dataLayer.
+ * Version: 6.2 (TEMPORARY)
  * Author: YourHiddenTrip
  * Text Domain: your-hidden-trip
  */

@@ -40,7 +40,7 @@ class YHT_Admin {
             'yht_admin',
             'Gestione Prenotazioni',
             '📋 Prenotazioni',
-            'manage_woocommerce',
+            'manage_options',
             'yht_bookings',
             array($this, 'bookings_page')
         );

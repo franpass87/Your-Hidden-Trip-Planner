@@ -1,8 +1,11 @@
 
 /**
- * Plugin Name: Your Hidden Trip Builder (v6.2 No-ACF)
- * Description: Trip builder reale per Tuscia & Umbria: CPT, tassonomie, importer, generatore tour da CPT, mappa inline (light), lead Brevo, export JSON/ICS/PDF (dompdf), WooCommerce package, share link, GA4 dataLayer.
- * Version: 6.2
+ * Legacy plugin code (DEPRECATED - v6.2 No-ACF)  
+ * This file contains legacy functionality and is kept for backward compatibility.
+ * The main plugin is now handled by your-hidden-trip-planner.php (v6.3)
+ * 
+ * Original Description: Trip builder reale per Tuscia & Umbria: CPT, tassonomie, importer, generatore tour da CPT, mappa inline (light), lead Brevo, export JSON/ICS/PDF (dompdf), WooCommerce package, share link, GA4 dataLayer.
+ * Version: 6.2 (LEGACY)
  * Author: YourHiddenTrip
  * Text Domain: your-hidden-trip
  */
@@ -211,13 +214,14 @@ add_action('save_post_yht_luogo', function($post_id){
 }, 10, 1);
 
 /* ---------------------------------------------------------
- * 4) MENU: IMPOSTAZIONI + IMPORTER
+ * 4) MENU: IMPOSTAZIONI + IMPORTER (DISABLED - Using new class-based system)
  * --------------------------------------------------------- */
-add_action('admin_menu', function(){
-  add_menu_page('Your Hidden Trip','Your Hidden Trip','manage_options','yht_admin','yht_admin_settings','dashicons-admin-site',58);
-  add_submenu_page('yht_admin','Impostazioni','Impostazioni','manage_options','yht_admin','yht_admin_settings');
-  add_submenu_page('yht_admin','Importer CSV','Importer CSV','manage_options','yht_import','yht_admin_importer');
-});
+// COMMENTED OUT: Conflicting with new class-based admin menu system
+// add_action('admin_menu', function(){
+//   add_menu_page('Your Hidden Trip','Your Hidden Trip','manage_options','yht_admin','yht_admin_settings','dashicons-admin-site',58);
+//   add_submenu_page('yht_admin','Impostazioni','Impostazioni','manage_options','yht_admin','yht_admin_settings');
+//   add_submenu_page('yht_admin','Importer CSV','Importer CSV','manage_options','yht_import','yht_admin_importer');
+// });
 
 function yht_admin_settings(){
   if(!current_user_can('manage_options')) return;
