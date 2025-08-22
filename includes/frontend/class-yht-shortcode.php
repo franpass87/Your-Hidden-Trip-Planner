@@ -103,11 +103,24 @@ class YHT_Shortcode {
             );
             
             // Localize script with settings
+            $current_lang = 'it'; // Default fallback
+            try {
+                if (class_exists('YHT_Plugin')) {
+                    $plugin_instance = YHT_Plugin::get_instance();
+                    if ($plugin_instance && method_exists($plugin_instance, 'get_current_language')) {
+                        $current_lang = $plugin_instance->get_current_language();
+                    }
+                }
+            } catch (Exception $e) {
+                // Use default language if plugin instance fails
+                $current_lang = 'it';
+            }
+            
             wp_localize_script('yht-enhancer', 'yhtSettings', array(
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('yht_nonce'),
                 'restUrl' => rest_url('yourhiddentrip/v1/'),
-                'currentLang' => YHT_Plugin::get_instance()->get_current_language(),
+                'currentLang' => $current_lang,
                 'strings' => array(
                     'loading' => __('Caricamento...', 'your-hidden-trip'),
                     'error' => __('Si è verificato un errore', 'your-hidden-trip'),
@@ -149,8 +162,19 @@ class YHT_Shortcode {
             'theme' => 'auto', // auto, light, dark
         ), $atts, 'yourhiddentrip_builder');
         
-        // Pass current language to the view for WPML compatibility
-        $current_lang = YHT_Plugin::get_instance()->get_current_language();
+        // Pass current language to the view for WPML compatibility  
+        $current_lang = 'it'; // Default fallback
+        try {
+            if (class_exists('YHT_Plugin')) {
+                $plugin_instance = YHT_Plugin::get_instance();
+                if ($plugin_instance && method_exists($plugin_instance, 'get_current_language')) {
+                    $current_lang = $plugin_instance->get_current_language();
+                }
+            }
+        } catch (Exception $e) {
+            // Use default language if plugin instance fails
+            $current_lang = 'it';
+        }
         
         ob_start();
         
