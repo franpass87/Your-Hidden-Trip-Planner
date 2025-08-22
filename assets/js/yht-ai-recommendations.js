@@ -161,15 +161,17 @@ class YHTAIRecommendations {
         }
 
         // Popularity-based suggestions
-        const trending = this.popularityData.trending[0];
-        suggestions.push({
-            type: 'trending',
-            title: '🔥 Tour più richiesto del momento',
-            description: `${trending.replace('_', ' ')} è la destinazione più prenotata questa settimana`,
-            recommendations: [trending],
-            confidence: 92,
-            social_proof: 'Prenotato 47 volte negli ultimi 7 giorni'
-        });
+        if (this.popularityData.trending && this.popularityData.trending.length > 0) {
+            const trending = this.popularityData.trending[0];
+            suggestions.push({
+                type: 'trending',
+                title: '🔥 Tour più richiesto del momento',
+                description: `${trending.replace('_', ' ')} è la destinazione più prenotata questa settimana`,
+                recommendations: [trending],
+                confidence: 92,
+                social_proof: 'Prenotato 47 volte negli ultimi 7 giorni'
+            });
+        }
 
         // Personalized suggestions based on user behavior
         if (this.userPreferences.favoriteExperiences.length > 0) {
@@ -531,7 +533,7 @@ class YHTAIRecommendations {
         
         // Initialize centroids randomly
         let centroids = [];
-        for (let i = 0; i < k; i++) {
+        for (let i = 0; i < k && data.length > 0; i++) {
             centroids.push(data[Math.floor(Math.random() * data.length)]);
         }
         
@@ -608,6 +610,8 @@ class YHTAIRecommendations {
         if (cluster.length === 0) return {};
         
         const features = cluster.map(point => this.extractUserFeatures(point));
+        if (features.length === 0 || !features[0]) return {};
+        
         const centroid = [];
         
         for (let i = 0; i < features[0].length; i++) {
