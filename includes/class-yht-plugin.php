@@ -23,7 +23,7 @@ class YHT_Plugin {
      * Plugin version
      * @var string
      */
-    public $version = '6.2';
+    public $version = '6.3';
     
     /**
      * Plugin settings

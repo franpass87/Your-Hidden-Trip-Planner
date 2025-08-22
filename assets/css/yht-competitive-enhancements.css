@@ -1,0 +1,826 @@
+/* 
+ * AI Recommendations & Competitive Enhancement Styles
+ * Makes the plugin super beautiful and innovative
+ * 
+ * @package YourHiddenTrip  
+ * @version 6.3
+ */
+
+/* AI Suggestions Container */
+.yht-ai-suggestions {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(52, 211, 153, 0.08));
+    border: 2px solid rgba(16, 185, 129, 0.2);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin: 24px 0 32px 0;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    animation: slideInDown 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.yht-ai-suggestions::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-primary);
+    animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.yht-ai-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.yht-ai-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.yht-ai-badge {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: pulse 2s infinite;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.yht-suggestions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+/* Individual Suggestion Widgets */
+.yht-suggestion-widget {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    position: relative;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    animation: fadeInUp 0.6s ease forwards;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.yht-suggestion-widget:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    border-color: var(--primary);
+}
+
+.yht-suggestion-widget.applied {
+    background: rgba(16, 185, 129, 0.05);
+    border-color: var(--primary);
+    transform: scale(0.98);
+}
+
+.yht-suggestion-widget.dismissed {
+    opacity: 0;
+    transform: scale(0.95) translateX(-20px);
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Suggestion Widget Types */
+.yht-suggestion-widget.weather {
+    border-left: 4px solid #f59e0b;
+}
+
+.yht-suggestion-widget.seasonal {
+    border-left: 4px solid #10b981;
+}
+
+.yht-suggestion-widget.trending {
+    border-left: 4px solid #ef4444;
+}
+
+.yht-suggestion-widget.personalized {
+    border-left: 4px solid #8b5cf6;
+}
+
+.suggestion-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 12px;
+}
+
+.suggestion-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text);
+    line-height: 1.3;
+    flex: 1;
+}
+
+.confidence-score {
+    background: var(--primary);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    min-width: fit-content;
+}
+
+.suggestion-description {
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.suggestion-savings {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from { box-shadow: 0 0 10px rgba(251, 191, 36, 0.3); }
+    to { box-shadow: 0 0 20px rgba(251, 191, 36, 0.6); }
+}
+
+.suggestion-proof {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.suggestion-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.suggestion-apply,
+.suggestion-dismiss {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.suggestion-apply {
+    background: var(--gradient-primary);
+    color: white;
+    flex: 1;
+}
+
+.suggestion-apply:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+.suggestion-dismiss {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--line);
+}
+
+.suggestion-dismiss:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+/* Dynamic Pricing Widget */
+.yht-dynamic-pricing {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.05), rgba(245, 158, 11, 0.08));
+    border: 2px solid rgba(251, 191, 36, 0.2);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin: 20px 0;
+    animation: slideInLeft 0.8s ease;
+}
+
+.pricing-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.pricing-icon {
+    font-size: 1.5rem;
+}
+
+.pricing-header h4 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+.pricing-info {
+    space-y: 12px;
+}
+
+.current-demand,
+.price-prediction {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.current-demand {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+}
+
+.price-prediction {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+.demand-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.demand-indicator.high {
+    background: #ef4444;
+}
+
+.trend-up {
+    font-size: 1.1rem;
+}
+
+/* Enhanced Cards with AI Suggestions Applied */
+.yht-card.ai-suggested {
+    position: relative;
+    border-color: var(--primary);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    animation: aiPulse 1.5s ease-in-out;
+}
+
+.yht-card.ai-suggested::after {
+    content: '🤖 Consiglio AI';
+    position: absolute;
+    top: -8px;
+    right: 16px;
+    background: var(--gradient-primary);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    z-index: 1;
+}
+
+@keyframes aiPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+/* Immersive Progress Enhancement */
+.yht-progress-immersive {
+    position: relative;
+    background: var(--card);
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    margin: 20px 0;
+    overflow: hidden;
+}
+
+.yht-progress-immersive::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(16, 185, 129, 0.1) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: progressSweep 3s ease-in-out infinite;
+}
+
+@keyframes progressSweep {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+    100% { transform: translateX(100%); }
+}
+
+.progress-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.progress-stat {
+    text-align: center;
+    padding: 12px;
+    background: rgba(16, 185, 129, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.progress-stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    display: block;
+}
+
+.progress-stat-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+/* Social Proof Elements */
+.yht-social-proof {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin: 16px 0;
+    animation: slideInRight 0.8s ease;
+}
+
+.social-proof-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.recent-bookings {
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+.booking-notification {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 8px 0;
+    font-size: 0.85rem;
+    animation: fadeIn 0.5s ease;
+}
+
+.booking-notification.live {
+    animation: liveBooking 0.8s ease;
+}
+
+@keyframes liveBooking {
+    0% { background: rgba(16, 185, 129, 0.2); }
+    100% { background: rgba(16, 185, 129, 0.1); }
+}
+
+/* Gamification Elements */
+.yht-achievement-badge {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: var(--gradient-primary);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    z-index: 1000;
+    animation: achievementPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+}
+
+@keyframes achievementPop {
+    0% {
+        transform: scale(0) rotate(-180deg);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+.yht-progress-milestone {
+    background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+    margin: 8px 0;
+    animation: bounce 0.6s ease;
+}
+
+@keyframes bounce {
+    0%, 20%, 53%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40%, 43% {
+        transform: translateY(-10px);
+    }
+    70% {
+        transform: translateY(-5px);
+    }
+    90% {
+        transform: translateY(-2px);
+    }
+}
+
+/* Enhanced Mobile Experience */
+@media (max-width: 768px) {
+    .yht-ai-suggestions {
+        padding: 16px;
+        margin: 16px -4px 24px -4px;
+    }
+    
+    .yht-suggestions-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .yht-suggestion-widget {
+        padding: 16px;
+    }
+    
+    .suggestion-actions {
+        justify-content: stretch;
+    }
+    
+    .suggestion-apply {
+        flex: 2;
+    }
+    
+    .yht-ai-header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .yht-ai-header h3 {
+        justify-content: center;
+        font-size: 1.1rem;
+    }
+    
+    .confidence-score {
+        align-self: flex-start;
+    }
+}
+
+/* Touch-friendly improvements for mobile */
+@media (hover: none) and (pointer: coarse) {
+    .yht-suggestion-widget {
+        min-height: 44px; /* Touch target minimum */
+    }
+    
+    .suggestion-apply,
+    .suggestion-dismiss {
+        min-height: 44px;
+        padding: 12px 16px;
+    }
+    
+    .yht-card {
+        min-height: 44px;
+        padding: 16px;
+    }
+}
+
+/* Advanced animations */
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .yht-ai-suggestions,
+    .yht-suggestion-widget,
+    .yht-dynamic-pricing,
+    .yht-social-proof,
+    .yht-achievement-badge,
+    .yht-progress-milestone {
+        animation: none;
+    }
+    
+    .yht-suggestion-widget {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Gamification UI Elements */
+.yht-level-widget {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.level-number {
+    background: var(--gradient-primary);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.level-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.level-bar {
+    width: 80px;
+    height: 6px;
+    background: var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.level-fill {
+    height: 100%;
+    background: var(--gradient-primary);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.level-text {
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-align: center;
+}
+
+.yht-level-up {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--gradient-primary);
+    color: white;
+    padding: 24px 32px;
+    border-radius: var(--radius-lg);
+    text-align: center;
+    z-index: 1001;
+    box-shadow: 0 20px 60px rgba(16, 185, 129, 0.4);
+    animation: levelUpPop 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes levelUpPop {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(-180deg);
+        opacity: 0;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+}
+
+.level-up-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.level-up-levels {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.level-up-features {
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.popularity-indicator {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    backdrop-filter: blur(5px);
+    animation: popIn 0.5s ease;
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.view-counter {
+    position: absolute;
+    bottom: -10px;
+    right: 20px;
+    background: rgba(107, 114, 128, 0.9);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    backdrop-filter: blur(5px);
+}
+
+.urgency-widget {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.05), rgba(220, 38, 38, 0.08));
+    border: 2px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin: 16px 0;
+    text-align: center;
+    animation: urgencyPulse 2s ease-in-out infinite;
+}
+
+@keyframes urgencyPulse {
+    0%, 100% {
+        border-color: rgba(239, 68, 68, 0.2);
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
+    }
+    50% {
+        border-color: rgba(239, 68, 68, 0.4);
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+    }
+}
+
+.urgency-header {
+    font-weight: 700;
+    color: #dc2626;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+}
+
+.urgency-message {
+    color: var(--text);
+    margin-bottom: 12px;
+    font-weight: 500;
+}
+
+.urgency-timer {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #dc2626;
+    font-family: 'Courier New', monospace;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 8px 16px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+/* Achievement notification styles */
+.achievement-content {
+    text-align: center;
+}
+
+.achievement-title {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+}
+
+.achievement-description {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-bottom: 8px;
+}
+
+.achievement-reward {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-block;
+}
+
+/* Enhanced mobile responsiveness for gamification */
+@media (max-width: 768px) {
+    .yht-level-widget {
+        margin-left: 0;
+        margin-top: 12px;
+        flex: 1;
+        justify-content: center;
+    }
+    
+    .yht-achievement-badge {
+        left: 10px;
+        right: 10px;
+        margin: 0 auto;
+    }
+    
+    .yht-level-up {
+        left: 10px;
+        right: 10px;
+        transform: translateY(-50%);
+        max-width: none;
+    }
+    
+    .urgency-widget {
+        margin: 16px -4px;
+    }
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}

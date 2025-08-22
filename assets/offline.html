@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Your Hidden Trip Planner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #374151;
+        }
+        
+        .offline-container {
+            text-align: center;
+            max-width: 400px;
+            padding: 40px 20px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+        }
+        
+        .offline-icon {
+            font-size: 4rem;
+            margin-bottom: 24px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .offline-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #111827;
+        }
+        
+        .offline-message {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 32px;
+            color: #6b7280;
+        }
+        
+        .retry-btn {
+            background: linear-gradient(135deg, #10b981, #34d399);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        
+        .retry-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+        
+        .features-list {
+            margin-top: 32px;
+            text-align: left;
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .features-list h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #374151;
+            text-align: center;
+        }
+        
+        .features-list ul {
+            list-style: none;
+        }
+        
+        .features-list li {
+            padding: 6px 0;
+            font-size: 0.95rem;
+            color: #6b7280;
+        }
+        
+        .features-list li::before {
+            content: '✅';
+            margin-right: 10px;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        @media (max-width: 480px) {
+            .offline-container {
+                padding: 30px 15px;
+                margin: 20px;
+                border-radius: 16px;
+            }
+            
+            .offline-icon {
+                font-size: 3rem;
+            }
+            
+            .offline-title {
+                font-size: 1.5rem;
+            }
+            
+            .offline-message {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status">
+        📱 Modalità Offline
+    </div>
+    
+    <div class="offline-container">
+        <div class="offline-icon">🌐</div>
+        <h1 class="offline-title">Ops, sei offline!</h1>
+        <p class="offline-message">
+            Non riesci a connetterti a internet in questo momento. 
+            Controlla la tua connessione e riprova.
+        </p>
+        
+        <button class="retry-btn" onclick="window.location.reload()">
+            🔄 Riprova connessione
+        </button>
+        
+        <div class="features-list">
+            <h3>💡 Funzionalità Offline Disponibili</h3>
+            <ul>
+                <li>Visualizza i tuoi viaggi salvati</li>
+                <li>Continua a esplorare le destinazioni</li>
+                <li>Compila il form (verrà sincronizzato online)</li>
+                <li>Accedi alle tue preferenze</li>
+                <li>Naviga tra le opzioni disponibili</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        // Check online status
+        function updateOnlineStatus() {
+            const status = document.querySelector('.connection-status');
+            const retryBtn = document.querySelector('.retry-btn');
+            
+            if (navigator.onLine) {
+                status.style.background = 'rgba(16, 185, 129, 0.1)';
+                status.style.color = '#10b981';
+                status.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+                status.textContent = '🌐 Online - Connesso';
+                retryBtn.textContent = '✨ Torna all\'app';
+                retryBtn.onclick = () => window.location.href = '/';
+            } else {
+                status.style.background = 'rgba(239, 68, 68, 0.1)';
+                status.style.color = '#dc2626';
+                status.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                status.textContent = '📱 Modalità Offline';
+                retryBtn.textContent = '🔄 Riprova connessione';
+                retryBtn.onclick = () => window.location.reload();
+            }
+        }
+        
+        // Listen for online/offline events
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        
+        // Initial check
+        updateOnlineStatus();
+        
+        // Auto-reload when online (after 2 seconds delay)
+        window.addEventListener('online', () => {
+            setTimeout(() => {
+                if (navigator.onLine) {
+                    window.location.href = '/';
+                }
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

@@ -24,7 +24,7 @@ $plugin_settings = YHT_Plugin::get_instance()->get_settings();
 
   <!-- Enhanced Header -->
   <header class="yht-header" role="banner">
-    <div class="yht-badge"><?php printf(__('Versione %s', 'your-hidden-trip'), '6.2'); ?></div>
+    <div class="yht-badge"><?php printf(__('Versione %s', 'your-hidden-trip'), '6.3'); ?></div>
     <h1 class="yht-title"><?php _e('Your Hidden Trip Builder', 'your-hidden-trip'); ?></h1>
     <div class="yht-subtitle"><?php _e('Scopri itinerari unici in Tuscia & Umbria', 'your-hidden-trip'); ?></div>
   </header>
