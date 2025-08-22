@@ -699,6 +699,3 @@ class YHT_Analytics {
         return $csv;
     }
 }
-
-// Initialize analytics
-new YHT_Analytics();

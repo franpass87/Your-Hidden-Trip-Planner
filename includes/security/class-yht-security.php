@@ -646,6 +646,3 @@ class YHT_Security {
         );
     }
 }
-
-// Initialize security module
-new YHT_Security();
