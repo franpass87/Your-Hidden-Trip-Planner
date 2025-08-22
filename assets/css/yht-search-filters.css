@@ -1,0 +1,537 @@
+/* Advanced Search Filters Enhancement */
+
+.yht-search-filters {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: var(--shadow);
+}
+
+.yht-filters-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.yht-filters-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.yht-filters-toggle {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+.yht-filters-toggle:hover {
+    background: var(--primary-600);
+}
+
+.yht-filters-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.yht-filters-content.expanded {
+    opacity: 1;
+    max-height: 500px;
+    padding-top: 16px;
+}
+
+.yht-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.yht-filter-label {
+    font-weight: 500;
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.yht-filter-select,
+.yht-filter-input {
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.95rem;
+    transition: var(--transition);
+}
+
+.yht-filter-select:focus,
+.yht-filter-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.yht-price-range {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.yht-price-range input {
+    flex: 1;
+}
+
+.yht-price-separator {
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.yht-filter-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.yht-filter-tag {
+    background: var(--primary);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.yht-filter-tag-remove {
+    background: none;
+    border: none;
+    color: currentColor;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.yht-filters-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+
+.yht-clear-filters {
+    background: var(--danger);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+.yht-clear-filters:hover {
+    background: #dc2626;
+}
+
+.yht-apply-filters {
+    background: var(--success);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: var(--transition);
+    flex: 1;
+}
+
+.yht-apply-filters:hover {
+    background: var(--primary-600);
+}
+
+/* Search Results Enhancements */
+.yht-search-results {
+    margin-top: 24px;
+}
+
+.yht-results-header {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.yht-results-count {
+    color: var(--muted);
+    font-size: 0.95rem;
+}
+
+.yht-sort-select {
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.yht-result-item {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.yht-result-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    border-color: var(--primary);
+}
+
+.yht-result-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--primary);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.yht-result-item:hover::before {
+    opacity: 1;
+}
+
+.yht-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.yht-result-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 8px;
+}
+
+.yht-result-subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.yht-result-rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #fbbf24;
+    font-size: 0.9rem;
+}
+
+.yht-result-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 20px;
+    align-items: start;
+}
+
+.yht-result-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.yht-result-feature {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--primary);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.yht-result-actions {
+    text-align: right;
+}
+
+.yht-result-price {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+
+.yht-result-price-unit {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-weight: normal;
+}
+
+.yht-result-availability {
+    color: var(--success);
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.yht-result-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.yht-result-btn:hover {
+    background: var(--primary-600);
+    transform: translateY(-1px);
+}
+
+/* Loading states */
+.yht-search-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: var(--muted);
+}
+
+.yht-search-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--line);
+    border-top: 2px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 12px;
+}
+
+/* Empty state */
+.yht-search-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+}
+
+.yht-search-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+.yht-search-empty-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+}
+
+.yht-search-empty-text {
+    max-width: 400px;
+    margin: 0 auto 20px;
+    line-height: 1.6;
+}
+
+.yht-search-suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
+.yht-search-suggestion {
+    background: var(--line);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: var(--transition);
+}
+
+.yht-search-suggestion:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .yht-filters-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .yht-results-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .yht-result-content {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .yht-result-actions {
+        text-align: left;
+    }
+    
+    .yht-filters-actions {
+        flex-direction: column;
+    }
+    
+    .yht-search-filters {
+        margin: 10px 0;
+        padding: 16px;
+    }
+}
+
+/* Dark mode adjustments */
+.yht-dark-mode .yht-filter-select,
+.yht-dark-mode .yht-filter-input,
+.yht-dark-mode .yht-sort-select {
+    background: var(--dark-card);
+    color: var(--dark-text);
+    border-color: var(--dark-line);
+}
+
+.yht-dark-mode .yht-result-item {
+    background: var(--dark-card);
+    border-color: var(--dark-line);
+}
+
+.yht-dark-mode .yht-result-title {
+    color: var(--dark-text);
+}
+
+/* Animation keyframes */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Enhanced calendar styles */
+.yht-calendar-widget {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin: 12px 0;
+    box-shadow: var(--shadow);
+}
+
+.yht-calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.yht-calendar-nav {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.yht-calendar-nav:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.yht-calendar-month {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.yht-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.yht-calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.yht-calendar-day:hover {
+    background: var(--line);
+}
+
+.yht-calendar-day.available {
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.yht-calendar-day.selected {
+    background: var(--primary);
+    color: white;
+}
+
+.yht-calendar-day.unavailable {
+    color: var(--muted);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.yht-calendar-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
+    font-size: 0.85rem;
+}
+
+.yht-calendar-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.yht-calendar-legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}

@@ -163,6 +163,9 @@ class YHT_Plugin {
         if (!is_admin()) {
             require_once YHT_PLUGIN_PATH . 'includes/frontend/class-yht-shortcode.php';
             new YHT_Shortcode();
+            
+            require_once YHT_PLUGIN_PATH . 'includes/frontend/class-yht-reviews.php';
+            new YHT_Reviews();
         }
     }
     
