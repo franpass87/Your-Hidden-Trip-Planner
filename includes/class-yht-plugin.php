@@ -55,6 +55,7 @@ class YHT_Plugin {
     private function init() {
         add_action('plugins_loaded', array($this, 'load_textdomain'));
         add_action('init', array($this, 'load_components'));
+        add_action('admin_init', array($this, 'maybe_run_updates'));
         register_activation_hook(YHT_PLUGIN_FILE, array($this, 'activate'));
         register_deactivation_hook(YHT_PLUGIN_FILE, array($this, 'deactivate'));
     }
@@ -218,7 +219,27 @@ class YHT_Plugin {
         require_once YHT_PLUGIN_PATH . 'includes/security/class-yht-security.php';
         new YHT_Security();
     }
-    
+
+    /**
+     * Check for plugin updates and reset transients if version changed
+     */
+    public function maybe_run_updates() {
+        $stored_version = get_option('yht_plugin_version');
+        if ($stored_version !== $this->version) {
+            $this->clear_transients();
+            update_option('yht_plugin_version', $this->version);
+        }
+    }
+
+    /**
+     * Remove plugin-related transients
+     */
+    private function clear_transients() {
+        global $wpdb;
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_yht_%'");
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_yht_%'");
+    }
+
     /**
      * Get plugin settings
      * @return array
@@ -250,7 +271,9 @@ class YHT_Plugin {
             'wc_price_per_pax'=> '80',
         );
         add_option(YHT_OPT, $defaults);
-        
+        update_option('yht_plugin_version', $this->version);
+        $this->clear_transients();
+
         // Create custom post types and taxonomies for rewrite rules
         $this->load_post_types();
         flush_rewrite_rules();
