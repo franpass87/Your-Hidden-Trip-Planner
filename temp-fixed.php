@@ -12,6 +12,10 @@
 
 if (!defined('ABSPATH')) exit;
 
+// COMPLETELY DISABLED - This file is deprecated and conflicts with the new plugin architecture
+// All functionality has been moved to the new class-based system in your-hidden-trip-planner.php
+return;
+
 define('YHT_VER', '6.2');
 define('YHT_SLUG', 'your-hidden-trip');
 define('YHT_OPT',  'yht_settings');

@@ -43,8 +43,10 @@ function yht_get_settings(){
 }
 
 /* ---------------------------------------------------------
- * 2) CPT & TASSO
+ * 2) CPT & TASSO - DISABLED (Using new post-types class system)
  * --------------------------------------------------------- */
+// COMMENTED OUT: Post types now handled by new class-based system
+/*
 add_action('init', function(){
 
   // CPT Luoghi
@@ -101,6 +103,7 @@ add_action('init', function(){
     'label'=>'Stagionalità', 'public'=>true, 'hierarchical'=>false, 'show_in_rest'=>true
   ));
 });
+*/
 
 /* ---------------------------------------------------------
  * 3) META (senza ACF) + METABOX
@@ -771,8 +774,10 @@ function yht_render_pdf_html($state, $tour, $map_png){
 }
 
 /* ---------------------------------------------------------
- * 6) SHORTCODE BUILDER (UI + LOGICA)
+ * 6) SHORTCODE BUILDER (UI + LOGICA) - DISABLED (Using new frontend system)
  * --------------------------------------------------------- */
+// COMMENTED OUT: Shortcode now handled by new frontend class system
+/*
 add_shortcode('yourhiddentrip_builder', function(){
   ob_start(); ?>
 <div id="yht-builder" class="yht-wrap" aria-live="polite">
@@ -1355,7 +1360,7 @@ add_shortcode('yourhiddentrip_builder', function(){
 </div>
 <?php
   return ob_get_clean();
-});
+});*/
 
 /* ---------------------------------------------------------
  * 7) GA4 (opzionale) – dataLayer base (carica GTM/GA4 dal tema)
