@@ -21,7 +21,8 @@ class YHT_Shortcode {
      */
     public function enqueue_frontend_assets() {
         // Only enqueue on pages that use the shortcode or if it's a known page
-        if (is_page() && (has_shortcode(get_post()->post_content, 'yourhiddentrip_builder') || $this->should_load_assets())) {
+        $post = get_post();
+        if (is_page() && $post && (has_shortcode($post->post_content, 'yourhiddentrip_builder') || $this->should_load_assets())) {
             // Enqueue enhanced CSS
             wp_enqueue_style(
                 'yht-frontend-enhanced',
@@ -194,7 +195,8 @@ class YHT_Shortcode {
      */
     public function add_pwa_support() {
         // Only add PWA support if the shortcode is being used
-        if (is_page() && (has_shortcode(get_post()->post_content, 'yourhiddentrip_builder') || $this->should_load_assets())) {
+        $post = get_post();
+        if (is_page() && $post && (has_shortcode($post->post_content, 'yourhiddentrip_builder') || $this->should_load_assets())) {
             // Add PWA manifest
             echo '<link rel="manifest" href="' . YHT_PLUGIN_URL . 'assets/manifest.json">' . "\n";
             
