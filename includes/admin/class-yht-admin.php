@@ -95,7 +95,6 @@ class YHT_Admin {
      * Dashboard page callback
      */
     public function dashboard_page() {
-        require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-dashboard.php';
         $dashboard = new YHT_Dashboard();
         $dashboard->render_dashboard();
     }
@@ -104,7 +103,6 @@ class YHT_Admin {
      * Customers management page
      */
     public function customers_page() {
-        require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-customer-manager.php';
         $customer_manager = new YHT_Customer_Manager();
         $customer_manager->render_page();
     }
@@ -113,7 +111,6 @@ class YHT_Admin {
      * System health page
      */
     public function system_health_page() {
-        require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-system-health.php';
         $system_health = new YHT_System_Health();
         $system_health->render_page();
     }
@@ -122,7 +119,6 @@ class YHT_Admin {
      * Settings page callback
      */
     public function settings_page() {
-        require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-settings.php';
         $settings_handler = new YHT_Settings();
         $settings_handler->render_page();
     }
@@ -131,7 +127,6 @@ class YHT_Admin {
      * Importer page callback
      */
     public function importer_page() {
-        require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-importer.php';
         $importer = new YHT_Importer();
         $importer->render_page();
     }

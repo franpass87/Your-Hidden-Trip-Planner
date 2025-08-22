@@ -47,10 +47,27 @@ class YHT_Importer {
             return 'Nessun file selezionato.';
         }
         
-        // TODO: Implement full CSV import functionality
-        // This would include the original import logic for luoghi, alloggi, tours
+        // Validate file upload
+        if (!isset($_FILES['yht_csv']['error']) || $_FILES['yht_csv']['error'] !== UPLOAD_ERR_OK) {
+            return 'Errore nel caricamento del file CSV.';
+        }
         
-        return 'Import funzionalità non ancora implementata nella versione refactored.';
+        $file_path = $_FILES['yht_csv']['tmp_name'];
+        if (!is_readable($file_path)) {
+            return 'File CSV non leggibile.';
+        }
+        
+        // TODO: Implement full CSV import functionality
+        // This should include:
+        // - CSV parsing with proper error handling
+        // - Validation of required fields based on $type (luoghi, alloggi, servizi, tours)
+        // - Creating/updating WordPress posts of the appropriate post type
+        // - Handling taxonomies (esperienze, aree, etc.)
+        // - Processing meta fields (coordinates, pricing, services, etc.)
+        // - Bulk processing with progress feedback
+        // - Rollback capability in case of errors
+        
+        return 'Import funzionalità non ancora implementata nella versione refactored. Contattare lo sviluppatore per il porting completo.';
     }
     
     /**

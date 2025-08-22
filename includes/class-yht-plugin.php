@@ -3,7 +3,7 @@
  * Main plugin bootstrap file
  * 
  * @package YourHiddenTrip
- * @version 6.2
+ * @version 6.3
  */
 
 if (!defined('ABSPATH')) exit;
@@ -158,6 +158,10 @@ class YHT_Plugin {
             
             require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-system-health.php';
             new YHT_System_Health();
+            
+            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-settings.php';
+            
+            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-importer.php';
             
             require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-email-templates.php';
             new YHT_Email_Templates();
