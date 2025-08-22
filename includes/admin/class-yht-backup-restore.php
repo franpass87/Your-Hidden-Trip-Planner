@@ -1146,6 +1146,14 @@ class YHT_Backup_Restore {
         $backup_dir = $upload_dir['basedir'] . '/yht-backups/';
         $filepath = $backup_dir . $backup_file;
 
+        // Security check: ensure the resolved path is within backup directory
+        $real_backup_dir = realpath($backup_dir);
+        $real_filepath = realpath($filepath);
+        
+        if (!$real_filepath || strpos($real_filepath, $real_backup_dir) !== 0) {
+            wp_die(__('Percorso file non valido.', 'your-hidden-trip'));
+        }
+
         if (file_exists($filepath)) {
             header('Content-Type: application/json');
             header('Content-Disposition: attachment; filename="' . $backup_file . '"');

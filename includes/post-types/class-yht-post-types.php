@@ -18,6 +18,7 @@ class YHT_Post_Types {
         add_action('save_post_yht_alloggio', array($this, 'save_alloggio_meta'), 10, 1);
         add_action('save_post_yht_servizio', array($this, 'save_servizio_meta'), 10, 1);
         add_action('save_post_yht_booking', array($this, 'save_booking_meta'), 10, 1);
+        add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_scripts'));
     }
     
     /**
@@ -376,5 +377,28 @@ class YHT_Post_Types {
         if(isset($_POST['yht_booking_status'])) {
             update_post_meta($post_id, 'yht_booking_status', sanitize_text_field($_POST['yht_booking_status']));
         }
+    }
+    
+    /**
+     * Enqueue admin scripts for meta boxes
+     */
+    public function enqueue_admin_scripts($hook) {
+        // Only enqueue on post edit screens for our custom post types
+        if (!in_array($hook, ['post.php', 'post-new.php'])) {
+            return;
+        }
+        
+        global $post;
+        if (!$post || !in_array($post->post_type, ['yht_luogo', 'yht_alloggio', 'yht_servizio', 'yht_booking'])) {
+            return;
+        }
+        
+        wp_enqueue_script(
+            'yht-admin-meta-boxes',
+            YHT_PLUGIN_URL . 'assets/js/admin-meta-boxes.js',
+            array('jquery'),
+            YHT_VER,
+            true
+        );
     }
 }
