@@ -11,7 +11,20 @@ if (!defined('ABSPATH')) exit;
 
 // Get current language for multilingual support
 $current_lang = isset($current_lang) ? $current_lang : 'it';
-$plugin_settings = YHT_Plugin::get_instance()->get_settings();
+
+// Get plugin settings with error handling
+$plugin_settings = array();
+try {
+    if (class_exists('YHT_Plugin')) {
+        $plugin_instance = YHT_Plugin::get_instance();
+        if ($plugin_instance) {
+            $plugin_settings = $plugin_instance->get_settings();
+        }
+    }
+} catch (Exception $e) {
+    // Fallback to empty settings array if plugin instance fails
+    $plugin_settings = array();
+}
 ?>
 
 <div id="yht-builder" class="yht-wrap" aria-live="polite">
