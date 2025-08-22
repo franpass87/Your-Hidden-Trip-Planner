@@ -5,6 +5,7 @@
 
 class YHTEnhancer {
     constructor() {
+        this.audioEnabled = false; // Initialize audio support
         this.init();
     }
 
@@ -117,7 +118,24 @@ class YHTEnhancer {
     playHoverSound() {
         // Optional: Add subtle audio feedback
         if (this.audioEnabled) {
-            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSEFLYXO8tmHOAcXYrjt559NEAxTpuPwtmMcBjiS1/LNeSEFLITO8tiIOAcXYrjt559MEAxUpuPxtmIcBjiS1/LNeSEFLITO8tiIOAcXYrjt559MEAxUpuPxtmIcBjiS1/LNeSEFLITO8tiIOAcXYrjt559MEAxUpuPxtmIcBjiS1/LNeSEFLITO8tiIOAcXYrjt559MEAxUpuPxtmIcBjiS1/LNeSEFLITO8tiIOAcXYrjt559MEAxUpuPxtmIcBjiS1/LNeSEFLITO8tiIOAcXYrjt559MEAxUpuPxtmIcBjiS1/LNeSEFLITO8tiIOAcXYrjt559MEAxUpuPxtmIcBjiS1/LNeSEFLITO8tiIOAcXYrjt559MEAxUpuPxtmIcBjiS1/LNeSEFLITO8tiIOAcXYrjt559MEAxUpuPxtmIcBjiS1/LNeSEFLITO8tiIOAcXYrjt559MEAxUpuPxtmIcBjiS1/LNeSEFLITO8tiIOAcXYrjt55');
+            try {
+                // Create a simple beep sound programmatically
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.1;
+                
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (error) {
+                console.debug('Audio feedback not supported:', error.message);
+            }
         }
     }
 
@@ -379,6 +397,10 @@ class YHTEnhancer {
         `;
         
         const container = document.querySelector('.yht-notifications');
+        if (!container) {
+            console.warn('YHT notification container not found');
+            return;
+        }
         container.appendChild(notification);
         
         // Auto-remove after duration

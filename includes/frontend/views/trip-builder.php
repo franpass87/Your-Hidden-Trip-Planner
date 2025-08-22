@@ -1252,15 +1252,22 @@
     }
 
     function showSuccessMessage(result) {
+      // Escape HTML to prevent XSS
+      const escapeHtml = (text) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      };
+      
       const messageHtml = `
         <div class="success-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;">
           <div class="success-modal" style="background:#fff;border-radius:16px;padding:32px;max-width:500px;text-align:center;animation:modalFadeIn 0.3s ease;">
             <div style="font-size:4rem;margin-bottom:16px;">🎉</div>
             <h2 style="color:#10b981;margin-bottom:16px;">Prenotazione Confermata!</h2>
             <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin:16px 0;">
-              <p><strong>Riferimento:</strong> ${result.booking_reference}</p>
-              <p><strong>Totale:</strong> €${result.total_price}</p>
-              <p><strong>Acconto:</strong> €${result.deposit_amount} (20%)</p>
+              <p><strong>Riferimento:</strong> ${escapeHtml(result.booking_reference || '')}</p>
+              <p><strong>Totale:</strong> €${escapeHtml(result.total_price || '0')}</p>
+              <p><strong>Acconto:</strong> €${escapeHtml(result.deposit_amount || '0')} (20%)</p>
             </div>
             <p style="color:#374151;margin:16px 0;">✅ La tua prenotazione è stata confermata con successo!</p>
             <p style="color:#374151;margin:16px 0;">💳 Procederai ora al pagamento sicuro dell'acconto</p>
@@ -1279,13 +1286,20 @@
     }
 
     function showErrorMessage(message) {
+      // Escape HTML to prevent XSS
+      const escapeHtml = (text) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      };
+      
       const errorHtml = `
         <div class="error-overlay" style="position:fixed;top:20px;right:20px;background:#fef2f2;border:2px solid #fca5a5;border-radius:12px;padding:20px;max-width:400px;z-index:10000;animation:slideInRight 0.3s ease;">
           <div style="display:flex;align-items:center;gap:12px;">
             <span style="font-size:1.5rem;">❌</span>
             <div>
               <h4 style="color:#dc2626;margin:0 0 8px;">Ops! Qualcosa è andato storto</h4>
-              <p style="color:#991b1b;margin:0;font-size:0.9rem;">${message}</p>
+              <p style="color:#991b1b;margin:0;font-size:0.9rem;">${escapeHtml(message)}</p>
             </div>
           </div>
         </div>
