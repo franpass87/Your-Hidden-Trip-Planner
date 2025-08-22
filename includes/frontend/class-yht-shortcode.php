@@ -12,6 +12,7 @@ class YHT_Shortcode {
     public function __construct() {
         add_shortcode('yourhiddentrip_builder', array($this, 'render_shortcode'));
         add_action('wp_head', array($this, 'add_ga4_support'), 5);
+        add_action('wp_head', array($this, 'add_pwa_support'), 6);
         add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_assets'));
     }
     
@@ -44,6 +45,50 @@ class YHT_Shortcode {
                 'yht-enhancer',
                 YHT_PLUGIN_URL . 'assets/js/yht-enhancer.js',
                 array('jquery'),
+                YHT_VER,
+                true
+            );
+            
+            // Enqueue competitive enhancement CSS
+            wp_enqueue_style(
+                'yht-competitive-enhancements',
+                YHT_PLUGIN_URL . 'assets/css/yht-competitive-enhancements.css',
+                array('yht-frontend-enhanced'),
+                YHT_VER,
+                'all'
+            );
+            
+            // Enqueue AI recommendations system
+            wp_enqueue_script(
+                'yht-ai-recommendations',
+                YHT_PLUGIN_URL . 'assets/js/yht-ai-recommendations.js',
+                array('yht-enhancer'),
+                YHT_VER,
+                true
+            );
+            
+            // Enqueue gamification system
+            wp_enqueue_script(
+                'yht-gamification',
+                YHT_PLUGIN_URL . 'assets/js/yht-gamification.js',
+                array('yht-enhancer'),
+                YHT_VER,
+                true
+            );
+            
+            // Enqueue mobile enhancements
+            wp_enqueue_style(
+                'yht-mobile-enhancements',
+                YHT_PLUGIN_URL . 'assets/css/yht-mobile-enhancements.css',
+                array('yht-competitive-enhancements'),
+                YHT_VER,
+                'all'
+            );
+            
+            wp_enqueue_script(
+                'yht-mobile-enhancer',
+                YHT_PLUGIN_URL . 'assets/js/yht-mobile-enhancer.js',
+                array('yht-enhancer'),
                 YHT_VER,
                 true
             );
@@ -118,6 +163,35 @@ class YHT_Shortcode {
         }
         
         return ob_get_clean();
+    }
+    
+    /**
+     * Add PWA and mobile optimization support to wp_head
+     */
+    public function add_pwa_support() {
+        // Only add PWA support if the shortcode is being used
+        if (is_page() && (has_shortcode(get_post()->post_content, 'yourhiddentrip_builder') || $this->should_load_assets())) {
+            // Add PWA manifest
+            echo '<link rel="manifest" href="' . YHT_PLUGIN_URL . 'assets/manifest.json">' . "\n";
+            
+            // Add theme color for mobile browsers
+            echo '<meta name="theme-color" content="#10b981">' . "\n";
+            
+            // Add Apple touch icon
+            echo '<link rel="apple-touch-icon" href="' . YHT_PLUGIN_URL . 'assets/images/icon-192.png">' . "\n";
+            
+            // Add PWA meta tags
+            echo '<meta name="apple-mobile-web-app-capable" content="yes">' . "\n";
+            echo '<meta name="apple-mobile-web-app-status-bar-style" content="default">' . "\n";
+            echo '<meta name="apple-mobile-web-app-title" content="YHT Planner">' . "\n";
+            
+            // Add Windows tile support
+            echo '<meta name="msapplication-TileColor" content="#10b981">' . "\n";
+            echo '<meta name="msapplication-TileImage" content="' . YHT_PLUGIN_URL . 'assets/images/icon-144.png">' . "\n";
+            
+            // Add mobile viewport optimization
+            echo '<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=2.0">' . "\n";
+        }
     }
     
     /**

@@ -1,0 +1,110 @@
+{
+    "name": "Your Hidden Trip Planner",
+    "short_name": "YHT Planner",
+    "description": "Scopri itinerari unici in Tuscia & Umbria con il nostro trip builder AI-powered",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#f8fafc",
+    "theme_color": "#10b981",
+    "orientation": "portrait-primary",
+    "scope": "/",
+    "lang": "it",
+    "dir": "ltr",
+    "categories": ["travel", "tourism", "lifestyle"],
+    "screenshots": [
+        {
+            "src": "assets/images/screenshot-mobile.png",
+            "sizes": "540x720",
+            "type": "image/png",
+            "form_factor": "narrow"
+        },
+        {
+            "src": "assets/images/screenshot-desktop.png", 
+            "sizes": "1280x800",
+            "type": "image/png",
+            "form_factor": "wide"
+        }
+    ],
+    "icons": [
+        {
+            "src": "assets/images/icon-72.png",
+            "sizes": "72x72",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/images/icon-96.png",
+            "sizes": "96x96", 
+            "type": "image/png"
+        },
+        {
+            "src": "assets/images/icon-128.png",
+            "sizes": "128x128",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/images/icon-144.png",
+            "sizes": "144x144",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/images/icon-152.png",
+            "sizes": "152x152",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/images/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/images/icon-384.png",
+            "sizes": "384x384",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/images/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Inizia Nuovo Viaggio",
+            "short_name": "Nuovo Viaggio",
+            "description": "Crea un nuovo itinerario personalizzato",
+            "url": "/?action=new_trip",
+            "icons": [
+                {
+                    "src": "assets/images/shortcut-new.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "I Miei Viaggi",
+            "short_name": "Viaggi",
+            "description": "Visualizza i tuoi viaggi salvati",
+            "url": "/?action=my_trips", 
+            "icons": [
+                {
+                    "src": "assets/images/shortcut-saved.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "Offerte Speciali",
+            "short_name": "Offerte",
+            "description": "Scopri le nostre offerte esclusive",
+            "url": "/?action=deals",
+            "icons": [
+                {
+                    "src": "assets/images/shortcut-deals.png", 
+                    "sizes": "96x96"
+                }
+            ]
+        }
+    ],
+    "related_applications": [],
+    "prefer_related_applications": false
+}
