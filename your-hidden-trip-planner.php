@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Your Hidden Trip Builder (v6.3 AI-Enhanced)
  * Description: Trip builder super competitivo per Tuscia & Umbria: CPT, tassonomie, importer, generatore tour da CPT, mappa inline (light), lead Brevo, export JSON/ICS/PDF (dompdf), WooCommerce package, share link, GA4 dataLayer, AI recommendations, gamification, PWA support.
- * Version: 6.3
+ * Version: 6.3 // x-release-please-version
  * Author: YourHiddenTrip
  * Text Domain: your-hidden-trip
  */
@@ -11,7 +11,7 @@
 if (!defined('ABSPATH')) exit;
 
 // Plugin constants
-define('YHT_VER', '6.3');
+define('YHT_VER', '6.3'); // x-release-please-version
 define('YHT_SLUG', 'your-hidden-trip');
 define('YHT_OPT', 'yht_settings');
 define('YHT_PLUGIN_FILE', __FILE__);

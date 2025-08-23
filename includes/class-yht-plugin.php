@@ -3,7 +3,7 @@
  * Main plugin bootstrap file
  * 
  * @package YourHiddenTrip
- * @version 6.3
+ * @version 6.3 // x-release-please-version
  */
 
 if (!defined('ABSPATH')) exit;
@@ -23,7 +23,7 @@ class YHT_Plugin {
      * Plugin version
      * @var string
      */
-    public $version = '6.3';
+    public $version = '6.3'; // x-release-please-version
     
     /**
      * Plugin settings

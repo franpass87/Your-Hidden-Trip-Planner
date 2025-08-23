@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "simple",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        "readme.txt",
+        "README.md",
+        "your-hidden-trip-planner.php",
+        "includes/class-yht-plugin.php"
+      ]
+    }
+  }
+}
