@@ -165,8 +165,8 @@ class YHTCacheManager {
         
         localStorage.setItem('yht_last_cleanup', now);
         
-        if (deleted.length > 0 && window.yhtDebug) {
-            console.log(`YHT Cache: Cleaned up ${deleted.length} expired entries`);
+        if (deleted.length > 0 && window.yhtLogger) {
+            window.yhtLogger.debug(`Cache cleaned up ${deleted.length} expired entries`);
         }
         
         return deleted.length;
@@ -240,7 +240,9 @@ class YHTCacheManager {
             this.set(key, data, type);
             return data;
         } catch (error) {
-            console.warn('YHT Cache: Failed to fetch data for key:', key, error);
+            if (window.yhtLogger) {
+                window.yhtLogger.warn('Cache: Failed to fetch data for key:', key, error);
+            }
             return null;
         }
     }

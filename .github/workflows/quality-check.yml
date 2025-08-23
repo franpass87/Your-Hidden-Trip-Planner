@@ -1,0 +1,245 @@
+name: YHT Code Quality & Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: [7.4, 8.0, 8.1, 8.2]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        extensions: mbstring, xml, ctype, iconv, intl, mysql
+        tools: composer, phpcs, phpstan
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Cache Composer dependencies
+      uses: actions/cache@v3
+      with:
+        path: vendor
+        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-composer-
+
+    - name: Cache npm dependencies
+      uses: actions/cache@v3
+      with:
+        path: node_modules
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
+
+    - name: Install Composer dependencies
+      if: matrix.php-version == '8.1'  # Only run once
+      run: |
+        if [ -f composer.json ]; then
+          composer install --prefer-dist --no-progress --no-suggest
+        else
+          echo "No composer.json found - skipping Composer install"
+        fi
+
+    - name: Install npm dependencies
+      if: matrix.php-version == '8.1'  # Only run once
+      run: |
+        if [ -f package.json ]; then
+          npm ci
+        else
+          echo "No package.json found - installing basic linting tools"
+          npm init -y
+          npm install --save-dev eslint jshint csslint
+        fi
+
+    - name: PHP Syntax Check
+      run: |
+        echo "Checking PHP syntax..."
+        find . -name "*.php" -not -path "./vendor/*" -not -path "./node_modules/*" | xargs -I {} php -l {}
+
+    - name: JavaScript Syntax Check  
+      if: matrix.php-version == '8.1'  # Only run once
+      run: |
+        echo "Checking JavaScript syntax..."
+        find ./assets/js -name "*.js" | while read file; do
+          echo "Checking: $file"
+          node -c "$file" || exit 1
+        done
+
+    - name: PHP Code Standards (PHPCS)
+      if: matrix.php-version == '8.1'  # Only run once
+      run: |
+        if command -v phpcs >/dev/null 2>&1; then
+          # WordPress Coding Standards
+          phpcs --standard=WordPress --extensions=php --ignore=vendor/,node_modules/ . || echo "PHPCS warnings found"
+        else
+          echo "PHPCS not available - skipping code standards check"
+        fi
+      continue-on-error: true
+
+    - name: JavaScript Linting (ESLint)
+      if: matrix.php-version == '8.1'  # Only run once
+      run: |
+        if [ -f .eslintrc.js ] || [ -f .eslintrc.json ]; then
+          npx eslint assets/js/ || echo "ESLint warnings found"
+        else
+          echo "No ESLint config found - creating basic config"
+          cat > .eslintrc.json << EOF
+        {
+          "env": {
+            "browser": true,
+            "es6": true,
+            "jquery": true
+          },
+          "extends": ["eslint:recommended"],
+          "parserOptions": {
+            "ecmaVersion": 2020,
+            "sourceType": "module"
+          },
+          "globals": {
+            "wp": "readonly",
+            "jQuery": "readonly",
+            "$": "readonly",
+            "ajaxurl": "readonly"
+          },
+          "rules": {
+            "no-unused-vars": ["error", { "varsIgnorePattern": "^(wp|jQuery|$|ajaxurl)$" }],
+            "no-undef": "error",
+            "semi": ["error", "always"]
+          }
+        }
+        EOF
+          npx eslint assets/js/ || echo "ESLint warnings found"
+        fi
+      continue-on-error: true
+
+    - name: CSS Linting
+      if: matrix.php-version == '8.1'  # Only run once
+      run: |
+        if command -v csslint >/dev/null 2>&1; then
+          find ./assets/css -name "*.css" | xargs npx csslint || echo "CSS lint warnings found"
+        else
+          echo "CSS lint not available - skipping"
+        fi
+      continue-on-error: true
+
+    - name: Security Scan (Basic)
+      if: matrix.php-version == '8.1'  # Only run once
+      run: |
+        echo "Running basic security checks..."
+        # Check for common security issues
+        echo "Checking for potential security issues..."
+        
+        # Check for direct access protection
+        if ! grep -r "if.*!defined.*ABSPATH.*exit" --include="*.php" . | head -1; then
+          echo "Warning: Some PHP files may lack direct access protection"
+        fi
+        
+        # Check for SQL injection patterns (basic)
+        if grep -r "SELECT.*\$_.*" --include="*.php" .; then
+          echo "Warning: Potential SQL injection patterns found"
+          exit 1
+        fi
+        
+        # Check for XSS patterns (basic)
+        if grep -r "echo.*\$_\|print.*\$_" --include="*.php" . | grep -v "esc_\|sanitize_"; then
+          echo "Warning: Potential XSS patterns found"
+          exit 1
+        fi
+        
+        echo "Basic security checks completed"
+
+    - name: Plugin Structure Check
+      if: matrix.php-version == '8.1'  # Only run once
+      run: |
+        echo "Checking WordPress plugin structure..."
+        
+        # Check for required files
+        if [ ! -f "your-hidden-trip-planner.php" ]; then
+          echo "Error: Main plugin file not found"
+          exit 1
+        fi
+        
+        # Check for plugin headers
+        if ! grep -q "Plugin Name:" your-hidden-trip-planner.php; then
+          echo "Error: Plugin headers not found in main file"
+          exit 1
+        fi
+        
+        # Check for WordPress compatibility
+        if ! grep -q "if.*!defined.*ABSPATH" your-hidden-trip-planner.php; then
+          echo "Warning: Main plugin file should check for WordPress"
+        fi
+        
+        echo "Plugin structure validation completed"
+
+    - name: Code Coverage Report
+      if: matrix.php-version == '8.1'  # Only run once  
+      run: |
+        echo "Code coverage analysis..."
+        
+        # Count total lines
+        TOTAL_LINES=$(find . -name "*.php" -o -name "*.js" | grep -v vendor | grep -v node_modules | xargs wc -l | tail -1 | awk '{print $1}')
+        
+        # Count documented functions
+        DOCUMENTED=$(grep -r "@param\|@return\|@var" --include="*.php" . | wc -l)
+        
+        # Count tested functionality (basic heuristic)
+        TESTED=$(grep -r "test\|Test\|TEST" --include="*.php" . | wc -l)
+        
+        echo "Total lines of code: $TOTAL_LINES"
+        echo "Documented functions: $DOCUMENTED"  
+        echo "Test-related code: $TESTED"
+        echo "Estimated documentation coverage: $(echo "$DOCUMENTED * 100 / $TOTAL_LINES" | bc -l | cut -c1-4)%"
+
+  deployment-check:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Validate Plugin Version
+      run: |
+        # Extract version from main plugin file
+        PLUGIN_VERSION=$(grep "Version:" your-hidden-trip-planner.php | sed 's/.*Version: *//' | tr -d ' ')
+        
+        # Check if CHANGELOG has the same version
+        if ! grep -q "$PLUGIN_VERSION" CHANGELOG.md; then
+          echo "Warning: Plugin version $PLUGIN_VERSION not found in CHANGELOG.md"
+        fi
+        
+        echo "Plugin version: $PLUGIN_VERSION"
+        
+    - name: Check for Breaking Changes
+      run: |
+        echo "Checking for potential breaking changes..."
+        
+        # Check if any public functions were removed
+        git diff HEAD~1..HEAD --name-only | grep "\.php$" | while read file; do
+          if [ -f "$file" ]; then
+            REMOVED_FUNCTIONS=$(git diff HEAD~1..HEAD -- "$file" | grep "^-.*public function" | sed 's/^-.*//' || true)
+            if [ -n "$REMOVED_FUNCTIONS" ]; then
+              echo "Warning: Public functions removed in $file"
+              echo "$REMOVED_FUNCTIONS"
+            fi
+          fi
+        done
+        
+        echo "Breaking changes check completed"

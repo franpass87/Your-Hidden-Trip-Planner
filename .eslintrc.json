@@ -1,0 +1,71 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "jquery": true
+  },
+  "extends": ["eslint:recommended"],
+  "parserOptions": {
+    "ecmaVersion": 2020,
+    "sourceType": "script"
+  },
+  "globals": {
+    "wp": "readonly",
+    "jQuery": "readonly",
+    "$": "readonly",
+    "ajaxurl": "readonly",
+    "yhtAdmin": "readonly",
+    "yht_vars": "readonly",
+    "window": "readonly",
+    "document": "readonly",
+    "console": "readonly",
+    "alert": "readonly",
+    "confirm": "readonly",
+    "localStorage": "readonly",
+    "sessionStorage": "readonly",
+    "fetch": "readonly",
+    "Promise": "readonly",
+    "setTimeout": "readonly",
+    "setInterval": "readonly",
+    "clearTimeout": "readonly",
+    "clearInterval": "readonly",
+    "performance": "readonly",
+    "IntersectionObserver": "readonly",
+    "PerformanceObserver": "readonly"
+  },
+  "rules": {
+    "no-unused-vars": ["warn", { 
+      "vars": "all", 
+      "args": "after-used",
+      "varsIgnorePattern": "^(wp|jQuery|$|ajaxurl|yht.*|window|document|console)$"
+    }],
+    "no-undef": "error",
+    "semi": ["error", "always"],
+    "quotes": ["warn", "single", { "allowTemplateLiterals": true }],
+    "no-console": "warn",
+    "no-debugger": "error",
+    "no-alert": "warn",
+    "curly": ["error", "all"],
+    "eqeqeq": ["error", "always"],
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "no-script-url": "error",
+    "prefer-const": "warn",
+    "no-var": "warn",
+    "arrow-spacing": "warn",
+    "object-shorthand": "warn",
+    "prefer-template": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["assets/js/modules/*.js"],
+      "parserOptions": {
+        "sourceType": "module"
+      },
+      "rules": {
+        "no-undef": "off"
+      }
+    }
+  ]
+}

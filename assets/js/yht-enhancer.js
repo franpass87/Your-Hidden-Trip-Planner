@@ -351,10 +351,14 @@ class YHTEnhancer {
     registerServiceWorker() {
         navigator.serviceWorker.register('/yht-sw.js')
             .then(registration => {
-                console.log('YHT Service Worker registered');
+                if (window.yhtLogger) {
+                    window.yhtLogger.info('Service Worker registered successfully');
+                }
             })
             .catch(error => {
-                console.log('YHT Service Worker registration failed');
+                if (window.yhtLogger) {
+                    window.yhtLogger.warn('Service Worker registration failed:', error);
+                }
             });
     }
 

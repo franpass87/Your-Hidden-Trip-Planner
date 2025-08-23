@@ -213,7 +213,9 @@ class YHTPerformance {
             try {
                 lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
             } catch (e) {
-                console.log('LCP observer not supported');
+                if (window.yhtLogger) {
+                    window.yhtLogger.debug('LCP observer not supported');
+                }
             }
 
             // Monitor long tasks
@@ -228,7 +230,9 @@ class YHTPerformance {
             try {
                 taskObserver.observe({ entryTypes: ['longtask'] });
             } catch (e) {
-                console.log('Long task observer not supported');
+                if (window.yhtLogger) {
+                    window.yhtLogger.debug('Long task observer not supported');
+                }
             }
         }
     }
