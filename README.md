@@ -4,6 +4,21 @@
 
 This WordPress plugin has been refactored from a monolithic single-file structure (1365+ lines) to a modern, modular architecture following WordPress best practices and SOLID principles.
 
+## ⚠️ Important Installation Note
+
+**DO NOT use GitHub's "Download ZIP" button** as it downloads source code without required dependencies, causing plugin activation failures.
+
+### For Regular Users (Recommended)
+1. Download the pre-built distribution package from the [Releases page](https://github.com/franpass87/Your-Hidden-Trip-Planner/releases)
+2. Look for `your-hidden-trip-planner-dist.zip` in the Assets section
+3. Extract and upload to your `/wp-content/plugins/` directory
+4. Activate the plugin in WordPress admin
+
+### For Developers
+1. Clone this repository
+2. Run `composer install` to install dependencies
+3. The plugin will work normally
+
 ## Plugin Features
 
 - **Custom Post Types**: Places (Luoghi), Tours, Accommodations (Alloggi), Partners

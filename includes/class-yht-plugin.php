@@ -89,6 +89,7 @@ class YHT_Plugin {
         add_action('plugins_loaded', array($this, 'load_textdomain'));
         add_action('init', array($this, 'load_components'));
         add_action('admin_init', array($this, 'maybe_run_updates'));
+        add_action('admin_notices', array($this, 'check_dependencies'));
         register_activation_hook(YHT_PLUGIN_FILE, array($this, 'activate'));
         register_deactivation_hook(YHT_PLUGIN_FILE, array($this, 'deactivate'));
     }
@@ -283,6 +284,65 @@ class YHT_Plugin {
             $this->settings = wp_parse_args($this->settings, $this->get_default_settings());
         }
         return $this->settings;
+    }
+    
+    /**
+     * Check plugin dependencies and show admin notices
+     */
+    public function check_dependencies() {
+        // Check if we're on an admin page
+        if (!is_admin()) {
+            return;
+        }
+        
+        // Skip if user cannot manage plugins
+        if (!current_user_can('manage_plugins')) {
+            return;
+        }
+        
+        // Check for vendor dependencies
+        $vendor_missing = !$this->has_vendor_dependencies();
+        
+        if ($vendor_missing) {
+            $this->show_dependency_notice();
+        }
+    }
+    
+    /**
+     * Check if vendor dependencies are available
+     */
+    private function has_vendor_dependencies() {
+        $vendor_autoload = YHT_PLUGIN_PATH . 'vendor/autoload.php';
+        $dompdf_direct = YHT_PLUGIN_PATH . 'vendor/dompdf/autoload.inc.php';
+        
+        if (file_exists($vendor_autoload)) {
+            require_once $vendor_autoload;
+            return class_exists('\\Dompdf\\Dompdf');
+        }
+        
+        if (file_exists($dompdf_direct)) {
+            require_once $dompdf_direct;
+            return class_exists('\\Dompdf\\Dompdf');
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Show dependency missing notice
+     */
+    private function show_dependency_notice() {
+        $class = 'notice notice-error';
+        $message = __('<strong>Your Hidden Trip Planner:</strong> Missing required dependencies for PDF generation.', 'your-hidden-trip');
+        $details = __('It looks like you downloaded the source code directly from GitHub. Please download the pre-built distribution package from the <a href="https://github.com/franpass87/Your-Hidden-Trip-Planner/releases" target="_blank">Releases page</a> instead, which includes all necessary dependencies.', 'your-hidden-trip');
+        $composer_info = __('For developers: Run <code>composer install</code> in the plugin directory to install dependencies.', 'your-hidden-trip');
+        
+        printf('<div class="%1$s"><p>%2$s</p><p>%3$s</p><p><em>%4$s</em></p></div>', 
+            esc_attr($class), 
+            wp_kses_post($message), 
+            wp_kses_post($details),
+            wp_kses_post($composer_info)
+        );
     }
     
     /**

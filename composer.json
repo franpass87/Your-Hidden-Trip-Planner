@@ -1,0 +1,22 @@
+{
+    "name": "franpass87/your-hidden-trip-planner",
+    "description": "WordPress plugin for trip planning with PDF generation capabilities",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "require": {
+        "php": ">=7.4",
+        "dompdf/dompdf": "^2.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "YourHiddenTrip\\": "includes/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist"
+    }
+}
