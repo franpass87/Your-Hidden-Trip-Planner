@@ -46,7 +46,40 @@ class YHT_Plugin {
      * Private constructor (singleton pattern)
      */
     private function __construct() {
+        $this->register_autoloader();
         $this->init();
+    }
+
+    /**
+     * Register class autoloader for plugin classes.
+     */
+    private function register_autoloader() {
+        spl_autoload_register(function($class) {
+            if (strpos($class, 'YHT_') !== 0) {
+                return;
+            }
+
+            $filename = 'class-' . strtolower(str_replace('_', '-', $class)) . '.php';
+            $directories = array(
+                'includes/',
+                'includes/admin/',
+                'includes/frontend/',
+                'includes/post-types/',
+                'includes/rest-api/',
+                'includes/utilities/',
+                'includes/analytics/',
+                'includes/security/',
+                'includes/pdf/',
+            );
+
+            foreach ($directories as $dir) {
+                $path = YHT_PLUGIN_PATH . $dir . $filename;
+                if (file_exists($path)) {
+                    require_once $path;
+                    return;
+                }
+            }
+        });
     }
     
     /**
@@ -137,7 +170,6 @@ class YHT_Plugin {
      * Load post types and taxonomies
      */
     private function load_post_types() {
-        require_once YHT_PLUGIN_PATH . 'includes/post-types/class-yht-post-types.php';
         new YHT_Post_Types();
     }
     
@@ -146,36 +178,17 @@ class YHT_Plugin {
      */
     private function load_admin() {
         if (is_admin()) {
-            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-admin.php';
             new YHT_Admin();
-            
+
             // Load backend management components
-            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-dashboard.php';
             new YHT_Dashboard();
-            
-            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-customer-manager.php';
             new YHT_Customer_Manager();
-            
-            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-system-health.php';
             new YHT_System_Health();
-            
-            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-settings.php';
-            
-            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-importer.php';
-            
-            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-email-templates.php';
+            // Settings and Importer classes load on demand via autoloader
             new YHT_Email_Templates();
-            
-            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-advanced-reports.php';
             new YHT_Advanced_Reports();
-            
-            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-api-manager.php';
             new YHT_API_Manager();
-            
-            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-backup-restore.php';
             new YHT_Backup_Restore();
-            
-            require_once YHT_PLUGIN_PATH . 'includes/admin/class-yht-user-roles.php';
             new YHT_User_Roles();
         }
     }
@@ -184,7 +197,6 @@ class YHT_Plugin {
      * Load REST API endpoints
      */
     private function load_rest_api() {
-        require_once YHT_PLUGIN_PATH . 'includes/rest-api/class-yht-rest-controller.php';
         new YHT_Rest_Controller();
     }
     
@@ -193,10 +205,7 @@ class YHT_Plugin {
      */
     private function load_frontend() {
         if (!is_admin()) {
-            require_once YHT_PLUGIN_PATH . 'includes/frontend/class-yht-shortcode.php';
             new YHT_Shortcode();
-            
-            require_once YHT_PLUGIN_PATH . 'includes/frontend/class-yht-reviews.php';
             new YHT_Reviews();
         }
     }
@@ -205,14 +214,13 @@ class YHT_Plugin {
      * Load utility classes
      */
     private function load_utilities() {
-        require_once YHT_PLUGIN_PATH . 'includes/utilities/class-yht-helpers.php';
+        // Utility classes are loaded on demand via autoloader
     }
     
     /**
      * Load analytics module
      */
     private function load_analytics() {
-        require_once YHT_PLUGIN_PATH . 'includes/analytics/class-yht-analytics.php';
         new YHT_Analytics();
     }
     
@@ -220,7 +228,6 @@ class YHT_Plugin {
      * Load security module
      */
     private function load_security() {
-        require_once YHT_PLUGIN_PATH . 'includes/security/class-yht-security.php';
         new YHT_Security();
     }
 
@@ -240,8 +247,30 @@ class YHT_Plugin {
      */
     private function clear_transients() {
         global $wpdb;
-        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", '_transient_yht_%'));
-        $wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", '_transient_timeout_yht_%'));
+        $pattern1 = $wpdb->esc_like('_transient_yht_') . '%';
+        $pattern2 = $wpdb->esc_like('_transient_timeout_yht_') . '%';
+        $wpdb->query(
+            $wpdb->prepare(
+                "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+                $pattern1,
+                $pattern2
+            )
+        );
+    }
+
+    /**
+     * Default plugin settings.
+     *
+     * @return array
+     */
+    private function get_default_settings() {
+        return array(
+            'notify_email'    => get_option('admin_email'),
+            'brevo_api_key'   => '',
+            'ga4_id'          => '',
+            'wc_deposit_pct'  => '20',
+            'wc_price_per_pax'=> '80',
+        );
     }
 
     /**
@@ -251,14 +280,7 @@ class YHT_Plugin {
     public function get_settings() {
         if (empty($this->settings)) {
             $this->settings = get_option(YHT_OPT, array());
-            $defaults = array(
-                'notify_email'    => get_option('admin_email'),
-                'brevo_api_key'   => '',
-                'ga4_id'          => '',
-                'wc_deposit_pct'  => '20',
-                'wc_price_per_pax'=> '80',
-            );
-            $this->settings = wp_parse_args($this->settings, $defaults);
+            $this->settings = wp_parse_args($this->settings, $this->get_default_settings());
         }
         return $this->settings;
     }
@@ -267,14 +289,7 @@ class YHT_Plugin {
      * Plugin activation
      */
     public function activate() {
-        $defaults = array(
-            'notify_email'    => get_option('admin_email'),
-            'brevo_api_key'   => '',
-            'ga4_id'          => '',
-            'wc_deposit_pct'  => '20',
-            'wc_price_per_pax'=> '80',
-        );
-        add_option(YHT_OPT, $defaults);
+        add_option(YHT_OPT, $this->get_default_settings());
         update_option('yht_plugin_version', $this->version);
         $this->clear_transients();
 
