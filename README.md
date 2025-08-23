@@ -1,5 +1,7 @@
 # Your Hidden Trip Builder Plugin - Refactored Architecture
 
+**Current version: 6.3** <!-- x-release-please-version -->
+
 ## Overview
 
 This WordPress plugin has been refactored from a monolithic single-file structure (1365+ lines) to a modern, modular architecture following WordPress best practices and SOLID principles.
