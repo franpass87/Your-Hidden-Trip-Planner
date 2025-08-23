@@ -43,7 +43,7 @@ class YHT_Importer {
         check_admin_referer('yht_import');
         $type = sanitize_text_field($_POST['yht_type'] ?? 'luoghi');
         
-        if(empty($_FILES['yht_csv']['tmp_name'])) {
+        if (empty($_FILES['yht_csv']['tmp_name'])) {
             return 'Nessun file selezionato.';
         }
         
@@ -57,17 +57,268 @@ class YHT_Importer {
             return 'File CSV non leggibile.';
         }
         
-        // TODO: Implement full CSV import functionality
-        // This should include:
-        // - CSV parsing with proper error handling
-        // - Validation of required fields based on $type (luoghi, alloggi, servizi, tours)
-        // - Creating/updating WordPress posts of the appropriate post type
-        // - Handling taxonomies (esperienze, aree, etc.)
-        // - Processing meta fields (coordinates, pricing, services, etc.)
-        // - Bulk processing with progress feedback
-        // - Rollback capability in case of errors
+        // Validate file size (max 5MB)
+        if ($_FILES['yht_csv']['size'] > 5 * 1024 * 1024) {
+            return 'File CSV troppo grande. Dimensione massima: 5MB.';
+        }
         
-        return 'Import funzionalità non ancora implementata nella versione refactored. Contattare lo sviluppatore per il porting completo.';
+        try {
+            return $this->import_csv_data($file_path, $type);
+        } catch (Exception $e) {
+            error_log('YHT Import Error: ' . $e->getMessage());
+            return 'Errore durante l\'importazione: ' . $e->getMessage();
+        }
+    }
+    
+    /**
+     * Import CSV data
+     * @param string $file_path Path to CSV file
+     * @param string $type Type of data (luoghi, alloggi, servizi, tours)
+     * @return string Result message
+     */
+    private function import_csv_data($file_path, $type) {
+        $handle = fopen($file_path, 'r');
+        if (!$handle) {
+            throw new Exception('Impossibile aprire il file CSV.');
+        }
+        
+        $headers = fgetcsv($handle);
+        if (!$headers) {
+            fclose($handle);
+            throw new Exception('File CSV vuoto o headers mancanti.');
+        }
+        
+        // Validate headers based on type
+        $required_fields = $this->get_required_fields($type);
+        $missing_fields = array_diff($required_fields, $headers);
+        if (!empty($missing_fields)) {
+            fclose($handle);
+            throw new Exception('Campi obbligatori mancanti: ' . implode(', ', $missing_fields));
+        }
+        
+        $imported = 0;
+        $errors = array();
+        $row_number = 1;
+        
+        while (($row = fgetcsv($handle)) !== false) {
+            $row_number++;
+            
+            if (count($row) !== count($headers)) {
+                $errors[] = "Riga $row_number: numero di colonne non corrispondente";
+                continue;
+            }
+            
+            $data = array_combine($headers, $row);
+            
+            try {
+                if ($this->import_single_item($data, $type)) {
+                    $imported++;
+                }
+            } catch (Exception $e) {
+                $errors[] = "Riga $row_number: " . $e->getMessage();
+            }
+        }
+        
+        fclose($handle);
+        
+        $result = "Importazione completata. $imported elementi importati.";
+        if (!empty($errors)) {
+            $result .= " Errori: " . implode(', ', array_slice($errors, 0, 5));
+            if (count($errors) > 5) {
+                $result .= " (e " . (count($errors) - 5) . " altri errori)";
+            }
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Get required fields for each type
+     * @param string $type Data type
+     * @return array Required field names
+     */
+    private function get_required_fields($type) {
+        $fields = array(
+            'luoghi' => array('title', 'descr'),
+            'alloggi' => array('title', 'descr', 'tipologia'),
+            'servizi' => array('title', 'descr', 'categoria'),
+            'tours' => array('title', 'descr', 'durata')
+        );
+        
+        return $fields[$type] ?? array('title', 'descr');
+    }
+    
+    /**
+     * Import single item from CSV row
+     * @param array $data Row data
+     * @param string $type Data type
+     * @return bool Success status
+     */
+    private function import_single_item($data, $type) {
+        // Validate required fields
+        $title = YHT_Validators::text($data['title'] ?? '', 200);
+        if (!$title) {
+            throw new Exception('Titolo obbligatorio');
+        }
+        
+        $description = wp_kses_post($data['descr'] ?? '');
+        if (empty($description)) {
+            throw new Exception('Descrizione obbligatoria');
+        }
+        
+        // Prepare post data
+        $post_data = array(
+            'post_title' => $title,
+            'post_content' => $description,
+            'post_status' => 'publish',
+            'post_type' => $this->get_post_type($type),
+            'post_author' => get_current_user_id()
+        );
+        
+        // Check if post already exists (by title)
+        $existing_post = get_page_by_title($title, OBJECT, $post_data['post_type']);
+        
+        if ($existing_post) {
+            $post_data['ID'] = $existing_post->ID;
+            $post_id = wp_update_post($post_data);
+        } else {
+            $post_id = wp_insert_post($post_data);
+        }
+        
+        if (is_wp_error($post_id)) {
+            throw new Exception('Errore creazione post: ' . $post_id->get_error_message());
+        }
+        
+        // Handle meta fields
+        $this->import_meta_fields($post_id, $data, $type);
+        
+        // Handle taxonomies
+        $this->import_taxonomies($post_id, $data, $type);
+        
+        return true;
+    }
+    
+    /**
+     * Get WordPress post type for import type
+     * @param string $type Import type
+     * @return string Post type
+     */
+    private function get_post_type($type) {
+        $post_types = array(
+            'luoghi' => 'yht_luogo',
+            'alloggi' => 'yht_alloggio',
+            'servizi' => 'yht_servizio',
+            'tours' => 'yht_tour'
+        );
+        
+        return $post_types[$type] ?? 'yht_luogo';
+    }
+    
+    /**
+     * Import meta fields for post
+     * @param int $post_id Post ID
+     * @param array $data Row data
+     * @param string $type Data type
+     */
+    private function import_meta_fields($post_id, $data, $type) {
+        // Handle coordinates
+        if (isset($data['lat']) && isset($data['lng'])) {
+            $lat = floatval($data['lat']);
+            $lng = floatval($data['lng']);
+            
+            if (YHT_Validators::coordinates($lat, $lng)) {
+                update_post_meta($post_id, 'yht_lat', $lat);
+                update_post_meta($post_id, 'yht_lng', $lng);
+            }
+        }
+        
+        // Handle pricing fields
+        if (isset($data['costo_ingresso'])) {
+            $cost = floatval($data['costo_ingresso']);
+            if ($cost >= 0) {
+                update_post_meta($post_id, 'yht_costo_ingresso', $cost);
+            }
+        }
+        
+        // Handle duration
+        if (isset($data['durata_min'])) {
+            $duration = intval($data['durata_min']);
+            if ($duration > 0) {
+                update_post_meta($post_id, 'yht_durata_min', $duration);
+            }
+        }
+        
+        // Handle boolean fields
+        $boolean_fields = array('family', 'pet', 'mobility');
+        foreach ($boolean_fields as $field) {
+            if (isset($data[$field])) {
+                $value = filter_var($data[$field], FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+                if ($value !== null) {
+                    update_post_meta($post_id, "yht_$field", $value ? 1 : 0);
+                }
+            }
+        }
+        
+        // Handle type-specific fields
+        switch ($type) {
+            case 'alloggi':
+                if (isset($data['stelle'])) {
+                    $stars = intval($data['stelle']);
+                    if ($stars >= 1 && $stars <= 5) {
+                        update_post_meta($post_id, 'yht_stelle', $stars);
+                    }
+                }
+                break;
+                
+            case 'servizi':
+                if (isset($data['prezzo_base'])) {
+                    $price = floatval($data['prezzo_base']);
+                    if ($price >= 0) {
+                        update_post_meta($post_id, 'yht_prezzo_base', $price);
+                    }
+                }
+                break;
+        }
+    }
+    
+    /**
+     * Import taxonomies for post
+     * @param int $post_id Post ID
+     * @param array $data Row data
+     * @param string $type Data type
+     */
+    private function import_taxonomies($post_id, $data, $type) {
+        // Handle pipe-separated taxonomies
+        $taxonomy_fields = array(
+            'esperienze' => 'yht_esperienza',
+            'aree' => 'yht_area',
+            'stagioni' => 'yht_stagione'
+        );
+        
+        foreach ($taxonomy_fields as $field => $taxonomy) {
+            if (isset($data[$field])) {
+                $terms = array_filter(array_map('trim', explode('|', $data[$field])));
+                if (!empty($terms)) {
+                    // Create terms if they don't exist and assign to post
+                    $term_ids = array();
+                    foreach ($terms as $term_name) {
+                        $term = get_term_by('name', $term_name, $taxonomy);
+                        if (!$term) {
+                            $result = wp_insert_term($term_name, $taxonomy);
+                            if (!is_wp_error($result)) {
+                                $term_ids[] = $result['term_id'];
+                            }
+                        } else {
+                            $term_ids[] = $term->term_id;
+                        }
+                    }
+                    
+                    if (!empty($term_ids)) {
+                        wp_set_post_terms($post_id, $term_ids, $taxonomy);
+                    }
+                }
+            }
+        }
     }
     
     /**

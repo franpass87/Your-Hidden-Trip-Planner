@@ -8,6 +8,7 @@
 if (!defined('ABSPATH')) exit;
 
 class YHT_System_Health {
+    use YHT_AJAX_Handler;
     
     /**
      * Constructor
@@ -705,42 +706,33 @@ class YHT_System_Health {
      * AJAX: Perform system health check
      */
     public function ajax_health_check() {
-        check_ajax_referer('yht_system_nonce', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_die('Unauthorized');
-        }
-        
-        $health_data = $this->run_health_check();
-        wp_send_json_success($health_data);
+        $this->handle_ajax_request(function() {
+            return $this->run_health_check();
+        });
     }
     
     /**
      * AJAX: Performance test
      */
     public function ajax_performance_test() {
-        check_ajax_referer('yht_system_nonce', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_die('Unauthorized');
-        }
-        
-        $perf_data = $this->run_performance_test();
-        wp_send_json_success($perf_data);
+        $this->handle_ajax_request(function() {
+            // Rate limiting for performance tests
+            if (!$this->check_rate_limit('performance_test', 3, 300)) {
+                throw new Exception(__('Test di performance limitato: max 3 ogni 5 minuti.', 'your-hidden-trip'));
+            }
+            
+            return $this->run_performance_test();
+        });
     }
     
     /**
      * AJAX: Clear cache
      */
     public function ajax_clear_cache() {
-        check_ajax_referer('yht_system_nonce', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_die('Unauthorized');
-        }
-        
-        $this->clear_all_caches();
-        wp_send_json_success();
+        $this->handle_ajax_request(function() {
+            $this->clear_all_caches();
+            return array('message' => __('Cache svuotata con successo.', 'your-hidden-trip'));
+        });
     }
     
     /**

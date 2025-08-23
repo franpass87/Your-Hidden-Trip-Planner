@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) exit;
  * API Integration Manager Class
  */
 class YHT_API_Manager {
+    use YHT_AJAX_Handler;
 
     /**
      * Constructor
@@ -988,24 +989,25 @@ class YHT_API_Manager {
      * AJAX: Test API connection
      */
     public function ajax_test_api_connection() {
-        check_ajax_referer('yht_api_manager_nonce', 'nonce');
-        
-        if (!current_user_can('manage_options')) {
-            wp_die(__('Permessi insufficienti.', 'your-hidden-trip'));
-        }
-
-        $provider = sanitize_key($_POST['provider']);
-        
-        // Test the specific API connection based on provider
-        $result = $this->test_api_connection($provider, $_POST);
-        
-        if ($result['success']) {
-            $this->log_api_activity($provider, 'test_connection', 'success', $result['message']);
-            wp_send_json_success($result);
-        } else {
-            $this->log_api_activity($provider, 'test_connection', 'error', $result['message']);
-            wp_send_json_error($result);
-        }
+        $this->handle_ajax_request(function() {
+            $provider = $this->get_post_data('provider');
+            if (!$provider) {
+                throw new Exception(__('Provider non specificato.', 'your-hidden-trip'));
+            }
+            
+            // Rate limiting - max 5 connection tests per minute
+            if (!$this->check_rate_limit("api_test_$provider", 5, 60)) {
+                throw new Exception(__('Troppi tentativi. Riprova tra 1 minuto.', 'your-hidden-trip'));
+            }
+            
+            $result = $this->test_api_connection($provider, $_POST);
+            
+            // Log activity
+            $status = $result['success'] ? 'success' : 'error';
+            $this->log_api_activity($provider, 'test_connection', $status, $result['message']);
+            
+            return $result;
+        }, 'yht_api_manager_nonce');
     }
 
     /**
@@ -1065,32 +1067,121 @@ class YHT_API_Manager {
      * Test PayPal connection
      */
     private function test_paypal_connection($data) {
-        // Simplified PayPal test
-        return array('success' => true, 'message' => __('Test PayPal simulato - OK', 'your-hidden-trip'));
+        $client_id = YHT_Validators::text($data['paypal_client_id'] ?? '');
+        $client_secret = YHT_Validators::text($data['paypal_client_secret'] ?? '');
+        $environment = sanitize_key($data['paypal_environment'] ?? 'sandbox');
+        
+        if (empty($client_id) || empty($client_secret)) {
+            return array('success' => false, 'message' => __('Client ID e Secret richiesti.', 'your-hidden-trip'));
+        }
+        
+        // PayPal API endpoints
+        $base_url = ($environment === 'live') 
+            ? 'https://api.paypal.com' 
+            : 'https://api.sandbox.paypal.com';
+        
+        // Get access token
+        $auth_response = wp_remote_post($base_url . '/v1/oauth2/token', array(
+            'headers' => array(
+                'Authorization' => 'Basic ' . base64_encode($client_id . ':' . $client_secret),
+                'Content-Type' => 'application/x-www-form-urlencoded'
+            ),
+            'body' => 'grant_type=client_credentials',
+            'timeout' => 15
+        ));
+        
+        if (is_wp_error($auth_response)) {
+            return array('success' => false, 'message' => __('Errore di connessione PayPal: ', 'your-hidden-trip') . $auth_response->get_error_message());
+        }
+        
+        $auth_body = json_decode(wp_remote_retrieve_body($auth_response), true);
+        
+        if (wp_remote_retrieve_response_code($auth_response) !== 200 || empty($auth_body['access_token'])) {
+            return array('success' => false, 'message' => __('Credenziali PayPal non valide.', 'your-hidden-trip'));
+        }
+        
+        return array('success' => true, 'message' => sprintf(__('Connessione PayPal %s riuscita.', 'your-hidden-trip'), $environment));
     }
 
     /**
      * Test Mailchimp connection
      */
     private function test_mailchimp_connection($data) {
-        // Simplified Mailchimp test
-        return array('success' => true, 'message' => __('Test Mailchimp simulato - OK', 'your-hidden-trip'));
+        $api_key = YHT_Validators::api_key($data['mailchimp_api_key'] ?? '', 'mailchimp');
+        
+        if (!$api_key) {
+            return array('success' => false, 'message' => __('API Key Mailchimp non valida.', 'your-hidden-trip'));
+        }
+        
+        // Extract datacenter from API key
+        $parts = explode('-', $api_key);
+        if (count($parts) !== 2) {
+            return array('success' => false, 'message' => __('Formato API Key Mailchimp non valido.', 'your-hidden-trip'));
+        }
+        
+        $datacenter = $parts[1];
+        $base_url = "https://{$datacenter}.api.mailchimp.com/3.0";
+        
+        // Test API connection with ping endpoint
+        $response = wp_remote_get($base_url . '/ping', array(
+            'headers' => array(
+                'Authorization' => 'Basic ' . base64_encode('user:' . $api_key),
+                'Content-Type' => 'application/json'
+            ),
+            'timeout' => 15
+        ));
+        
+        if (is_wp_error($response)) {
+            return array('success' => false, 'message' => __('Errore di connessione Mailchimp: ', 'your-hidden-trip') . $response->get_error_message());
+        }
+        
+        $response_code = wp_remote_retrieve_response_code($response);
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        
+        if ($response_code === 200 && isset($body['health_status']) && $body['health_status'] === 'Everything\'s Chimpy!') {
+            return array('success' => true, 'message' => __('Connessione Mailchimp riuscita.', 'your-hidden-trip'));
+        }
+        
+        $error_message = $body['detail'] ?? __('Errore sconosciuto', 'your-hidden-trip');
+        return array('success' => false, 'message' => __('Errore Mailchimp: ', 'your-hidden-trip') . $error_message);
     }
 
     /**
-     * Test Google Analytics connection
+     * Test Google Analytics connection (Measurement ID validation)
      */
     private function test_google_analytics_connection($data) {
-        // Simplified GA test
-        return array('success' => true, 'message' => __('Test Google Analytics simulato - OK', 'your-hidden-trip'));
+        $measurement_id = YHT_Validators::api_key($data['ga4_measurement_id'] ?? '', 'google_analytics');
+        
+        if (!$measurement_id) {
+            return array('success' => false, 'message' => __('Measurement ID GA4 non valido. Formato richiesto: G-XXXXXXXXXX', 'your-hidden-trip'));
+        }
+        
+        // Simple validation - no actual API test as GA4 requires complex authentication
+        return array('success' => true, 'message' => sprintf(__('Measurement ID GA4 validato: %s', 'your-hidden-trip'), $measurement_id));
     }
 
     /**
-     * Test HubSpot connection
+     * Test HubSpot connection (DEPRECATED - Feature flagged)
      */
     private function test_hubspot_connection($data) {
-        // Simplified HubSpot test
-        return array('success' => true, 'message' => __('Test HubSpot simulato - OK', 'your-hidden-trip'));
+        // Check if HubSpot integration is enabled via feature flag
+        $hubspot_enabled = get_option('yht_feature_hubspot_enabled', false);
+        
+        if (!$hubspot_enabled) {
+            return array(
+                'success' => false, 
+                'message' => __('Integrazione HubSpot sperimentale. Contattare supporto per abilitarla.', 'your-hidden-trip')
+            );
+        }
+        
+        $api_key = YHT_Validators::text($data['hubspot_api_key'] ?? '');
+        
+        if (empty($api_key)) {
+            return array('success' => false, 'message' => __('API Key HubSpot richiesta.', 'your-hidden-trip'));
+        }
+        
+        // Basic validation for now - real implementation would require OAuth flow
+        return array('success' => true, 'message' => __('HubSpot: validazione base completata (integrazione sperimentale).', 'your-hidden-trip'));
     }
 
     /**

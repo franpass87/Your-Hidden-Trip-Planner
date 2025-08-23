@@ -206,6 +206,8 @@ class YHT_Plugin {
      */
     private function load_utilities() {
         require_once YHT_PLUGIN_PATH . 'includes/utilities/class-yht-helpers.php';
+        require_once YHT_PLUGIN_PATH . 'includes/utilities/class-yht-validators.php';
+        require_once YHT_PLUGIN_PATH . 'includes/utilities/class-yht-ajax-handler.php';
     }
     
     /**
