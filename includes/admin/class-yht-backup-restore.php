@@ -958,7 +958,7 @@ class YHT_Backup_Restore {
                 'type' => $type,
                 'created' => current_time('mysql'),
                 'description' => $description,
-                'version' => '6.3'
+                'version' => '6.3.0'
             )
         );
 
