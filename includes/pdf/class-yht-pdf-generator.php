@@ -21,7 +21,7 @@ class YHT_PDF_Generator {
             return rest_ensure_response(array(
                 'ok' => false, 
                 'error' => 'dompdf_not_found', 
-                'message' => 'Dompdf non trovato. Installa vendor/dompdf o Composer vendor.'
+                'message' => __('PDF generation is not available. Please download the complete plugin package with dependencies from the GitHub Releases page.', 'your-hidden-trip')
             ));
         }
 
@@ -59,15 +59,16 @@ class YHT_PDF_Generator {
      * Check if dompdf is available
      */
     private function has_dompdf() {
+        // Use the same logic as the main plugin class
         $vendor_autoload = YHT_PLUGIN_PATH . 'vendor/autoload.php';
         $dompdf_direct = YHT_PLUGIN_PATH . 'vendor/dompdf/autoload.inc.php';
         
-        if(file_exists($vendor_autoload)) { 
+        if (file_exists($vendor_autoload)) { 
             require_once $vendor_autoload; 
             return class_exists('\\Dompdf\\Dompdf'); 
         }
         
-        if(file_exists($dompdf_direct)) { 
+        if (file_exists($dompdf_direct)) { 
             require_once $dompdf_direct; 
             return class_exists('\\Dompdf\\Dompdf'); 
         }
