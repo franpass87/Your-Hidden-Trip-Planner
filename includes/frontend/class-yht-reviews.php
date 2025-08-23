@@ -598,6 +598,3 @@ class YHT_Reviews {
         return $html;
     }
 }
-
-// Initialize reviews system
-new YHT_Reviews();

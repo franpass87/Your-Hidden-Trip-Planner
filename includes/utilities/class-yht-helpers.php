@@ -69,6 +69,16 @@ class YHT_Helpers {
             'posts_per_page' => -1,
             'tax_query' => (count($tax_query) > 1 ? $tax_query : array()),
             'no_found_rows' => true,
+            'meta_query' => array(
+                array(
+                    'key' => 'yht_lat',
+                    'compare' => 'EXISTS'
+                ),
+                array(
+                    'key' => 'yht_lng',
+                    'compare' => 'EXISTS'
+                )
+            )
         ));
 
         $results = array();
@@ -79,8 +89,6 @@ class YHT_Helpers {
             $id = get_the_ID();
             $lat = (float) get_post_meta($id,'yht_lat',true);
             $lng = (float) get_post_meta($id,'yht_lng',true);
-            
-            if(!$lat || !$lng) continue;
 
             // Check for closures
             if(self::is_closed_during_dates($id, $date_range)) continue;

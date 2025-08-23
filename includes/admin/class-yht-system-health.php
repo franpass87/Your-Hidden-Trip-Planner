@@ -811,7 +811,7 @@ class YHT_System_Health {
         
         // Check debug mode
         $debug_enabled = defined('WP_DEBUG') && WP_DEBUG;
-        if ($debug_enabled && !defined('WP_DEBUG_DISPLAY') || WP_DEBUG_DISPLAY) {
+        if ($debug_enabled && (!defined('WP_DEBUG_DISPLAY') || WP_DEBUG_DISPLAY)) {
             $issues[] = array(
                 'severity' => 'warning',
                 'title' => 'Debug mode attivo in produzione',
