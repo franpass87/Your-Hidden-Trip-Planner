@@ -1,6 +1,6 @@
 # Your Hidden Trip Builder Plugin - Refactored Architecture
 
-**Current version: 6.3.0** <!-- x-release-please-version -->
+**Current version: 6.3.1** <!-- x-release-please-version -->
 
 ## Overview
 
