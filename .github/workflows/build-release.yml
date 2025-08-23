@@ -1,3 +1,4 @@
+---
 name: Build Release Package
 
 on:
@@ -9,90 +10,102 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.0'
-        extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
-        coverage: none
-        
-    - name: Get composer cache directory
-      id: composer-cache
-      run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-      
-    - name: Cache composer dependencies
-      uses: actions/cache@v3
-      with:
-        path: ${{ steps.composer-cache.outputs.dir }}
-        key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-        restore-keys: ${{ runner.os }}-composer-
-        
-    - name: Install composer dependencies
-      run: composer install --no-dev --optimize-autoloader --no-progress --no-suggest
-      
-    - name: Create plugin directory
-      run: mkdir -p your-hidden-trip-planner
-      
-    - name: Copy plugin files
-      run: |
-        cp -r includes your-hidden-trip-planner/
-        cp -r assets your-hidden-trip-planner/
-        cp -r languages your-hidden-trip-planner/
-        cp -r vendor your-hidden-trip-planner/
-        cp your-hidden-trip-planner.php your-hidden-trip-planner/
-        cp README.md your-hidden-trip-planner/
-        cp SHORTCODE_USAGE.md your-hidden-trip-planner/
-        
-    - name: Create README for distribution
-      run: |
-        cat > your-hidden-trip-planner/DISTRIBUTION-README.md << 'EOF'
-        # Your Hidden Trip Planner - Distribution Package
-        
-        This is a pre-built distribution package that includes all necessary dependencies.
-        
-        ## Installation
-        1. Upload the entire `your-hidden-trip-planner` folder to your `/wp-content/plugins/` directory
-        2. Activate the plugin through the 'Plugins' menu in WordPress
-        
-        ## Important Note
-        This package includes vendor dependencies required for PDF generation. Do not use the "Download ZIP" option from GitHub as it does not include these dependencies.
-        
-        For source code and development, visit: https://github.com/franpass87/Your-Hidden-Trip-Planner
-        EOF
-        
-    - name: Create zip package
-      run: zip -r your-hidden-trip-planner-dist.zip your-hidden-trip-planner
-      
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: your-hidden-trip-planner-distribution
-        path: your-hidden-trip-planner-dist.zip
-        
-    - name: Create Release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: your-hidden-trip-planner-dist.zip
-        name: Release ${{ github.ref_name }}
-        body: |
-          ## Distribution Package
-          
-          This release includes all vendor dependencies required for the plugin to work properly.
-          
-          **Important**: Download the `your-hidden-trip-planner-dist.zip` file from the Assets section below, not the "Source code" files.
-          
-          ### Installation
-          1. Download `your-hidden-trip-planner-dist.zip`
-          2. Extract and upload the folder to `/wp-content/plugins/`
-          3. Activate the plugin in WordPress admin
-          
-          ### For Developers
-          If you want to work with the source code, clone the repository and run `composer install` to install dependencies.
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'
+          extensions: >
+            dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite,
+            pdo_sqlite, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install composer dependencies
+        run: >
+          composer install --no-dev --optimize-autoloader
+          --no-progress --no-suggest
+
+      - name: Create plugin directory
+        run: mkdir -p your-hidden-trip-planner
+
+      - name: Copy plugin files
+        run: |
+          cp -r includes your-hidden-trip-planner/
+          cp -r assets your-hidden-trip-planner/
+          cp -r languages your-hidden-trip-planner/
+          cp -r vendor your-hidden-trip-planner/
+          cp your-hidden-trip-planner.php your-hidden-trip-planner/
+          cp README.md your-hidden-trip-planner/
+          cp SHORTCODE_USAGE.md your-hidden-trip-planner/
+
+      - name: Create README for distribution
+        run: |
+          cat > your-hidden-trip-planner/DISTRIBUTION-README.md << 'EOF'
+          # Your Hidden Trip Planner - Distribution Package
+
+          This is a pre-built distribution package that includes all necessary
+          dependencies.
+
+          ## Installation
+          1. Upload the entire `your-hidden-trip-planner` folder to your
+             `/wp-content/plugins/` directory
+          2. Activate the plugin through the 'Plugins' menu in WordPress
+
+          ## Important Note
+          This package includes vendor dependencies required for PDF generation.
+          Do not use the "Download ZIP" option from GitHub as it does not
+          include these dependencies.
+
+          For source code and development, visit:
+          https://github.com/franpass87/Your-Hidden-Trip-Planner
+          EOF
+
+      - name: Create zip package
+        run: zip -r your-hidden-trip-planner-dist.zip your-hidden-trip-planner
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: your-hidden-trip-planner-distribution
+          path: your-hidden-trip-planner-dist.zip
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: your-hidden-trip-planner-dist.zip
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Distribution Package
+
+            This release includes all vendor dependencies required for the
+            plugin to work properly.
+
+            **Important**: Download the `your-hidden-trip-planner-dist.zip`
+            file from the Assets section below, not the "Source code" files.
+
+            ### Installation
+            1. Download `your-hidden-trip-planner-dist.zip`
+            2. Extract and upload the folder to `/wp-content/plugins/`
+            3. Activate the plugin in WordPress admin
+
+            ### For Developers
+            If you want to work with the source code, clone the repository
+            and run `composer install` to install dependencies.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
