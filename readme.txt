@@ -4,7 +4,7 @@ Tags: travel, trip planner, tourism, italy, tuscany, umbria, tour builder
 Requires at least: 5.0
 Tested up to: 6.4
 Requires PHP: 7.4
-Stable tag: 6.3 <!-- x-release-please-version -->
+Stable tag: 6.3.0 <!-- x-release-please-version -->
 License: GPL v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
