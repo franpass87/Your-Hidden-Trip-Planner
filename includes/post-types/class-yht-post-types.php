@@ -154,6 +154,13 @@ class YHT_Post_Types {
         register_post_meta('yht_tour','yht_tour_alloggi',$meta_s);     // JSON: [{day: 1, alloggi_ids: [id1, id2, id3], nights: 1, note: "Multiple accommodation options"}, ...]
         register_post_meta('yht_tour','yht_tour_servizi',$meta_s);     // JSON: [{day: 1, servizi_ids: [id1, id2, id3], time: "13:00", note: "Alternative service options"}, ...]
         register_post_meta('yht_tour','yht_auto_pricing',$meta_s);     // boolean: whether to auto-calculate pricing from entities
+        
+        // Admin-selected entities for confirmed bookings - NEW
+        register_post_meta('yht_tour','yht_tour_selected_luoghi',$meta_s);      // JSON: [{day: 1, luogo_id: id, time: "10:00", status: "confirmed"}, ...]
+        register_post_meta('yht_tour','yht_tour_selected_alloggi',$meta_s);     // JSON: [{day: 1, alloggio_id: id, nights: 1, status: "confirmed"}, ...]
+        register_post_meta('yht_tour','yht_tour_selected_servizi',$meta_s);     // JSON: [{day: 1, servizio_id: id, time: "13:00", status: "confirmed"}, ...]
+        register_post_meta('yht_tour','yht_entities_selection_status',$meta_s); // 'pending', 'contacted', 'confirmed', 'sent_to_client'
+        register_post_meta('yht_tour','yht_last_sent_to_client',$meta_s);       // timestamp of last client notification
 
         // Servizi - Enhanced with activity pricing
         $servizio_fields = array('yht_lat','yht_lng','yht_fascia_prezzo','yht_orari','yht_telefono','yht_sito_web',
@@ -179,6 +186,7 @@ class YHT_Post_Types {
     public function add_meta_boxes() {
         add_meta_box('yht_luogo_meta','Dati Luogo', array($this, 'luogo_meta_box'), 'yht_luogo','normal','high');
         add_meta_box('yht_tour_meta','Configurazione Tour', array($this, 'tour_meta_box'), 'yht_tour','normal','high');
+        add_meta_box('yht_tour_selection_meta','🎯 Gestione Selezione Entità per Cliente', array($this, 'tour_selection_meta_box'), 'yht_tour','normal','high');
         add_meta_box('yht_alloggio_meta','Prezzi All-Inclusive', array($this, 'alloggio_meta_box'), 'yht_alloggio','normal','high');
         add_meta_box('yht_servizio_meta','Dati Servizio', array($this, 'servizio_meta_box'), 'yht_servizio','normal','high');
         add_meta_box('yht_booking_meta','Dettagli Prenotazione', array($this, 'booking_meta_box'), 'yht_booking','normal','high');
@@ -694,6 +702,297 @@ class YHT_Post_Types {
     }
     
     /**
+     * Tour selection meta box callback - Admin interface for selecting specific entities to send to clients
+     */
+    public function tour_selection_meta_box($post) {
+        wp_nonce_field('yht_save_meta','yht_meta_nonce');
+        
+        // Get all entity options for this tour
+        $tour_luoghi = get_post_meta($post->ID,'yht_tour_luoghi',true) ?: '[]';
+        $tour_alloggi = get_post_meta($post->ID,'yht_tour_alloggi',true) ?: '[]';
+        $tour_servizi = get_post_meta($post->ID,'yht_tour_servizi',true) ?: '[]';
+        
+        // Get currently selected entities
+        $selected_luoghi = get_post_meta($post->ID,'yht_tour_selected_luoghi',true) ?: '[]';
+        $selected_alloggi = get_post_meta($post->ID,'yht_tour_selected_alloggi',true) ?: '[]';
+        $selected_servizi = get_post_meta($post->ID,'yht_tour_selected_servizi',true) ?: '[]';
+        $selection_status = get_post_meta($post->ID,'yht_entities_selection_status',true) ?: 'pending';
+        $last_sent = get_post_meta($post->ID,'yht_last_sent_to_client',true);
+        
+        $luoghi_data = json_decode($tour_luoghi, true) ?: array();
+        $alloggi_data = json_decode($tour_alloggi, true) ?: array();
+        $servizi_data = json_decode($tour_servizi, true) ?: array();
+        
+        $selected_luoghi_data = json_decode($selected_luoghi, true) ?: array();
+        $selected_alloggi_data = json_decode($selected_alloggi, true) ?: array();
+        $selected_servizi_data = json_decode($selected_servizi, true) ?: array();
+        
+        // Get available entities for building selection UI
+        $luoghi = get_posts(array('post_type' => 'yht_luogo', 'posts_per_page' => -1, 'post_status' => 'publish'));
+        $alloggi = get_posts(array('post_type' => 'yht_alloggio', 'posts_per_page' => -1, 'post_status' => 'publish'));
+        $servizi = get_posts(array('post_type' => 'yht_servizio', 'posts_per_page' => -1, 'post_status' => 'publish'));
+        
+        // Create lookup arrays for entities
+        $luoghi_lookup = array();
+        foreach($luoghi as $luogo) $luoghi_lookup[$luogo->ID] = $luogo->post_title;
+        $alloggi_lookup = array();
+        foreach($alloggi as $alloggio) $alloggi_lookup[$alloggio->ID] = $alloggio->post_title;
+        $servizi_lookup = array();
+        foreach($servizi as $servizio) $servizi_lookup[$servizio->ID] = $servizio->post_title;
+        ?>
+        <style>
+            .yht-selection-header {background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;}
+            .yht-selection-status {display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase;}
+            .yht-status-pending {background: #ffeaa7; color: #fdcb6e;}
+            .yht-status-contacted {background: #74b9ff; color: #0984e3;}
+            .yht-status-confirmed {background: #00b894; color: #00cec9;}
+            .yht-status-sent {background: #a29bfe; color: #6c5ce7;}
+            .yht-selection-day {background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 8px; padding: 15px; margin: 10px 0;}
+            .yht-selection-day h4 {margin: 0 0 15px; color: #2d3436; font-size: 16px;}
+            .yht-entity-selection-group {background: white; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin: 8px 0;}
+            .yht-entity-selection-group h5 {margin: 0 0 10px; color: #2d3436; font-size: 14px; font-weight: 600;}
+            .yht-options-vs-selected {display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: start;}
+            .yht-available-options {padding: 10px; background: #f1f3f4; border-radius: 4px;}
+            .yht-selected-entity {padding: 10px; background: #e8f5e8; border: 2px solid #00b894; border-radius: 4px;}
+            .yht-option-item {padding: 6px 10px; margin: 3px 0; background: white; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;}
+            .yht-selection-controls {margin-top: 10px;}
+            .yht-send-to-client {background: #00b894; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; cursor: pointer;}
+            .yht-send-to-client:hover {background: #00a085;}
+            .yht-send-to-client:disabled {background: #ddd; cursor: not-allowed;}
+            .yht-contact-log {background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; margin: 10px 0; font-size: 13px;}
+        </style>
+        
+        <div class="yht-selection-header">
+            <h3 style="margin: 0; font-size: 18px;">🎯 Gestione Selezione Entità per Cliente</h3>
+            <p style="margin: 8px 0 0; opacity: 0.9; font-size: 14px;">
+                Seleziona le entità specifiche da confermare al cliente dopo aver contattato le strutture per verificare la disponibilità.
+            </p>
+            <div style="margin-top: 12px;">
+                <label>Stato della selezione: </label>
+                <select name="yht_entities_selection_status" style="padding: 4px 8px; border-radius: 4px; border: none;">
+                    <option value="pending" <?php selected($selection_status, 'pending'); ?>>📋 In attesa di contatti</option>
+                    <option value="contacted" <?php selected($selection_status, 'contacted'); ?>>📞 Strutture contattate</option>
+                    <option value="confirmed" <?php selected($selection_status, 'confirmed'); ?>>✅ Disponibilità confermata</option>
+                    <option value="sent_to_client" <?php selected($selection_status, 'sent_to_client'); ?>>📧 Inviato al cliente</option>
+                </select>
+                <span class="yht-selection-status yht-status-<?php echo $selection_status; ?>"><?php 
+                    switch($selection_status) {
+                        case 'pending': echo 'In attesa'; break;
+                        case 'contacted': echo 'Contattato'; break;
+                        case 'confirmed': echo 'Confermato'; break;
+                        case 'sent_to_client': echo 'Inviato'; break;
+                    }
+                ?></span>
+            </div>
+            <?php if($last_sent): ?>
+                <p style="margin: 8px 0 0; font-size: 12px; opacity: 0.8;">
+                    📧 Ultimo invio al cliente: <?php echo date('d/m/Y H:i', $last_sent); ?>
+                </p>
+            <?php endif; ?>
+        </div>
+        
+        <?php if(empty($luoghi_data) && empty($alloggi_data) && empty($servizi_data)): ?>
+            <div class="yht-contact-log">
+                ⚠️ <strong>Nessuna opzione configurata</strong><br>
+                Configura prima le opzioni multiple nella sezione "Configurazione Tour" sopra.
+            </div>
+        <?php else: ?>
+            <div id="yht-selection-container">
+                <?php
+                // Organize all data by day
+                $days_data = array();
+                
+                // Collect all days from all entity types
+                $all_days = array();
+                foreach($luoghi_data as $item) $all_days[] = $item['day'] ?? 0;
+                foreach($alloggi_data as $item) $all_days[] = $item['day'] ?? 0;
+                foreach($servizi_data as $item) $all_days[] = $item['day'] ?? 0;
+                $all_days = array_unique(array_filter($all_days));
+                sort($all_days);
+                
+                foreach($all_days as $day_num):
+                    // Find data for this day
+                    $day_luoghi = null;
+                    $day_alloggi = null;
+                    $day_servizi = null;
+                    $day_selected_luoghi = null;
+                    $day_selected_alloggi = null;
+                    $day_selected_servizi = null;
+                    
+                    foreach($luoghi_data as $item) if(($item['day'] ?? 0) == $day_num) $day_luoghi = $item;
+                    foreach($alloggi_data as $item) if(($item['day'] ?? 0) == $day_num) $day_alloggi = $item;
+                    foreach($servizi_data as $item) if(($item['day'] ?? 0) == $day_num) $day_servizi = $item;
+                    foreach($selected_luoghi_data as $item) if(($item['day'] ?? 0) == $day_num) $day_selected_luoghi = $item;
+                    foreach($selected_alloggi_data as $item) if(($item['day'] ?? 0) == $day_num) $day_selected_alloggi = $item;
+                    foreach($selected_servizi_data as $item) if(($item['day'] ?? 0) == $day_num) $day_selected_servizi = $item;
+                ?>
+                    <div class="yht-selection-day" data-day="<?php echo $day_num; ?>">
+                        <h4>📅 Giorno <?php echo $day_num; ?></h4>
+                        
+                        <?php if($day_luoghi && !empty($day_luoghi['luoghi_ids'])): ?>
+                        <div class="yht-entity-selection-group">
+                            <h5>📍 Luoghi da Visitare</h5>
+                            <div class="yht-options-vs-selected">
+                                <div class="yht-available-options">
+                                    <strong>Opzioni disponibili:</strong>
+                                    <?php foreach($day_luoghi['luoghi_ids'] as $index => $luogo_id): ?>
+                                        <div class="yht-option-item">
+                                            <label>
+                                                <input type="radio" name="selected_luogo_day_<?php echo $day_num; ?>" 
+                                                       value="<?php echo $luogo_id; ?>" 
+                                                       <?php checked($day_selected_luoghi['luogo_id'] ?? 0, $luogo_id); ?> />
+                                                Opzione <?php echo ($index + 1); ?>: <?php echo esc_html($luoghi_lookup[$luogo_id] ?? 'ID: ' . $luogo_id); ?>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                    <div style="margin-top: 8px;">
+                                        <label>Orario: 
+                                            <input type="time" name="selected_luogo_time_<?php echo $day_num; ?>" 
+                                                   value="<?php echo esc_attr($day_selected_luoghi['time'] ?? $day_luoghi['time'] ?? '10:00'); ?>" 
+                                                   style="width: 100px;" />
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="yht-selected-entity">
+                                    <strong>Selezione per il cliente:</strong>
+                                    <?php if($day_selected_luoghi && !empty($day_selected_luoghi['luogo_id'])): ?>
+                                        <div style="padding: 8px 0; font-weight: 600; color: #00b894;">
+                                            ✅ <?php echo esc_html($luoghi_lookup[$day_selected_luoghi['luogo_id']] ?? 'Luogo non trovato'); ?>
+                                            <br><small>Orario: <?php echo esc_html($day_selected_luoghi['time'] ?? 'Non specificato'); ?></small>
+                                        </div>
+                                    <?php else: ?>
+                                        <div style="color: #6c757d; font-style: italic;">
+                                            Nessuna selezione effettuata
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if($day_alloggi && !empty($day_alloggi['alloggi_ids'])): ?>
+                        <div class="yht-entity-selection-group">
+                            <h5>🏨 Alloggio</h5>
+                            <div class="yht-options-vs-selected">
+                                <div class="yht-available-options">
+                                    <strong>Opzioni disponibili:</strong>
+                                    <?php foreach($day_alloggi['alloggi_ids'] as $index => $alloggio_id): ?>
+                                        <div class="yht-option-item">
+                                            <label>
+                                                <input type="radio" name="selected_alloggio_day_<?php echo $day_num; ?>" 
+                                                       value="<?php echo $alloggio_id; ?>" 
+                                                       <?php checked($day_selected_alloggi['alloggio_id'] ?? 0, $alloggio_id); ?> />
+                                                Opzione <?php echo ($index + 1); ?>: <?php echo esc_html($alloggi_lookup[$alloggio_id] ?? 'ID: ' . $alloggio_id); ?>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                    <div style="margin-top: 8px;">
+                                        <label>Notti: 
+                                            <input type="number" min="1" name="selected_alloggio_nights_<?php echo $day_num; ?>" 
+                                                   value="<?php echo esc_attr($day_selected_alloggi['nights'] ?? $day_alloggi['nights'] ?? 1); ?>" 
+                                                   style="width: 60px;" />
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="yht-selected-entity">
+                                    <strong>Selezione per il cliente:</strong>
+                                    <?php if($day_selected_alloggi && !empty($day_selected_alloggi['alloggio_id'])): ?>
+                                        <div style="padding: 8px 0; font-weight: 600; color: #00b894;">
+                                            ✅ <?php echo esc_html($alloggi_lookup[$day_selected_alloggi['alloggio_id']] ?? 'Alloggio non trovato'); ?>
+                                            <br><small>Notti: <?php echo esc_html($day_selected_alloggi['nights'] ?? 1); ?></small>
+                                        </div>
+                                    <?php else: ?>
+                                        <div style="color: #6c757d; font-style: italic;">
+                                            Nessuna selezione effettuata
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if($day_servizi && !empty($day_servizi['servizi_ids'])): ?>
+                        <div class="yht-entity-selection-group">
+                            <h5>🍽️ Servizi</h5>
+                            <div class="yht-options-vs-selected">
+                                <div class="yht-available-options">
+                                    <strong>Opzioni disponibili:</strong>
+                                    <?php foreach($day_servizi['servizi_ids'] as $index => $servizio_id): ?>
+                                        <div class="yht-option-item">
+                                            <label>
+                                                <input type="radio" name="selected_servizio_day_<?php echo $day_num; ?>" 
+                                                       value="<?php echo $servizio_id; ?>" 
+                                                       <?php checked($day_selected_servizi['servizio_id'] ?? 0, $servizio_id); ?> />
+                                                Opzione <?php echo ($index + 1); ?>: <?php echo esc_html($servizi_lookup[$servizio_id] ?? 'ID: ' . $servizio_id); ?>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                    <div style="margin-top: 8px;">
+                                        <label>Orario: 
+                                            <input type="time" name="selected_servizio_time_<?php echo $day_num; ?>" 
+                                                   value="<?php echo esc_attr($day_selected_servizi['time'] ?? $day_servizi['time'] ?? '13:00'); ?>" 
+                                                   style="width: 100px;" />
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="yht-selected-entity">
+                                    <strong>Selezione per il cliente:</strong>
+                                    <?php if($day_selected_servizi && !empty($day_selected_servizi['servizio_id'])): ?>
+                                        <div style="padding: 8px 0; font-weight: 600; color: #00b894;">
+                                            ✅ <?php echo esc_html($servizi_lookup[$day_selected_servizi['servizio_id']] ?? 'Servizio non trovato'); ?>
+                                            <br><small>Orario: <?php echo esc_html($day_selected_servizi['time'] ?? 'Non specificato'); ?></small>
+                                        </div>
+                                    <?php else: ?>
+                                        <div style="color: #6c757d; font-style: italic;">
+                                            Nessuna selezione effettuata
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            
+            <div class="yht-selection-controls" style="text-align: center; margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <button type="button" id="yht-send-selection-to-client" class="yht-send-to-client"
+                        <?php echo ($selection_status !== 'confirmed') ? 'disabled' : ''; ?>>
+                    📧 Invia Selezione al Cliente
+                </button>
+                <p style="margin: 10px 0 0; font-size: 13px; color: #6c757d;">
+                    💡 <strong>Flusso di lavoro:</strong> 1) Configura opzioni → 2) Contatta strutture → 3) Conferma disponibilità → 4) Seleziona entità → 5) Invia al cliente
+                </p>
+            </div>
+        <?php endif; ?>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            // Handle send to client button
+            $('#yht-send-selection-to-client').click(function() {
+                if(confirm('Sei sicuro di voler inviare la selezione finale al cliente? Questa azione invierà una email con le entità selezionate.')) {
+                    // Add logic here to send email notification
+                    alert('Funzionalità di invio email da implementare');
+                }
+            });
+            
+            // Enable/disable send button based on status
+            $('select[name="yht_entities_selection_status"]').change(function() {
+                var status = $(this).val();
+                var sendButton = $('#yht-send-selection-to-client');
+                
+                if(status === 'confirmed') {
+                    sendButton.prop('disabled', false);
+                } else {
+                    sendButton.prop('disabled', true);
+                }
+            });
+        });
+        </script>
+        <?php
+    }
+    
+    /**
      * Save luogo meta data
      */
     public function save_luogo_meta($post_id) {
@@ -779,6 +1078,14 @@ class YHT_Post_Types {
         if(isset($_POST['yht_auto_pricing']) && $_POST['yht_auto_pricing'] === '1') {
             $this->calculate_auto_pricing($post_id);
         }
+        
+        // Save entity selection status
+        if(isset($_POST['yht_entities_selection_status'])) {
+            update_post_meta($post_id, 'yht_entities_selection_status', sanitize_text_field($_POST['yht_entities_selection_status']));
+        }
+        
+        // Process selected entities for client
+        $this->save_selected_entities($post_id, $_POST);
     }
     
     /**
@@ -1008,6 +1315,82 @@ class YHT_Post_Types {
         }
         
         return false;
+    }
+    
+    /**
+     * Save selected entities for client communication
+     */
+    private function save_selected_entities($post_id, $post_data) {
+        $selected_luoghi = array();
+        $selected_alloggi = array();
+        $selected_servizi = array();
+        
+        // Process all form data to extract selections
+        foreach($post_data as $key => $value) {
+            // Process luoghi selections
+            if(preg_match('/^selected_luogo_day_(\d+)$/', $key, $matches)) {
+                $day = (int)$matches[1];
+                $luogo_id = (int)$value;
+                $time_key = 'selected_luogo_time_' . $day;
+                $time = isset($post_data[$time_key]) ? sanitize_text_field($post_data[$time_key]) : '10:00';
+                
+                if($luogo_id > 0) {
+                    $selected_luoghi[] = array(
+                        'day' => $day,
+                        'luogo_id' => $luogo_id,
+                        'time' => $time,
+                        'status' => 'selected',
+                        'selected_at' => current_time('timestamp')
+                    );
+                }
+            }
+            
+            // Process alloggi selections
+            if(preg_match('/^selected_alloggio_day_(\d+)$/', $key, $matches)) {
+                $day = (int)$matches[1];
+                $alloggio_id = (int)$value;
+                $nights_key = 'selected_alloggio_nights_' . $day;
+                $nights = isset($post_data[$nights_key]) ? max(1, (int)$post_data[$nights_key]) : 1;
+                
+                if($alloggio_id > 0) {
+                    $selected_alloggi[] = array(
+                        'day' => $day,
+                        'alloggio_id' => $alloggio_id,
+                        'nights' => $nights,
+                        'status' => 'selected',
+                        'selected_at' => current_time('timestamp')
+                    );
+                }
+            }
+            
+            // Process servizi selections
+            if(preg_match('/^selected_servizio_day_(\d+)$/', $key, $matches)) {
+                $day = (int)$matches[1];
+                $servizio_id = (int)$value;
+                $time_key = 'selected_servizio_time_' . $day;
+                $time = isset($post_data[$time_key]) ? sanitize_text_field($post_data[$time_key]) : '13:00';
+                
+                if($servizio_id > 0) {
+                    $selected_servizi[] = array(
+                        'day' => $day,
+                        'servizio_id' => $servizio_id,
+                        'time' => $time,
+                        'status' => 'selected',
+                        'selected_at' => current_time('timestamp')
+                    );
+                }
+            }
+        }
+        
+        // Sort by day
+        usort($selected_luoghi, function($a, $b) { return $a['day'] <=> $b['day']; });
+        usort($selected_alloggi, function($a, $b) { return $a['day'] <=> $b['day']; });
+        usort($selected_servizi, function($a, $b) { return $a['day'] <=> $b['day']; });
+        
+        // Save to database
+        update_post_meta($post_id, 'yht_tour_selected_luoghi', wp_json_encode($selected_luoghi));
+        update_post_meta($post_id, 'yht_tour_selected_alloggi', wp_json_encode($selected_alloggi));
+        update_post_meta($post_id, 'yht_tour_selected_servizi', wp_json_encode($selected_servizi));
     }
     
     /**
