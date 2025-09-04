@@ -417,7 +417,7 @@ class YHT_Helpers {
     }
     
     /**
-     * Query custom tours from database
+     * Query custom tours from database with connected entities
      */
     public static function query_custom_tours($experiences = array(), $areas = array()) {
         $tax_query = array('relation' => 'AND');
@@ -453,9 +453,25 @@ class YHT_Helpers {
         while($query->have_posts()) { 
             $query->the_post();
             $id = get_the_ID();
+            
+            // Get basic tour data
             $giorni_json = get_post_meta($id,'yht_giorni',true);
             $giorni_data = json_decode($giorni_json, true);
             if(!is_array($giorni_data)) $giorni_data = array();
+            
+            // Get entity relationships
+            $luoghi_json = get_post_meta($id,'yht_tour_luoghi',true);
+            $alloggi_json = get_post_meta($id,'yht_tour_alloggi',true);
+            $servizi_json = get_post_meta($id,'yht_tour_servizi',true);
+            
+            $luoghi_data = json_decode($luoghi_json, true) ?: array();
+            $alloggi_data = json_decode($alloggi_json, true) ?: array();
+            $servizi_data = json_decode($servizi_json, true) ?: array();
+            
+            // Fetch full entity data
+            $connected_luoghi = self::fetch_connected_luoghi($luoghi_data);
+            $connected_alloggi = self::fetch_connected_alloggi($alloggi_data);
+            $connected_servizi = self::fetch_connected_servizi($servizi_data);
             
             $results[] = array(
                 'id' => $id,
@@ -467,16 +483,191 @@ class YHT_Helpers {
                 'prezzo_standard_pax' => (float) get_post_meta($id,'yht_prezzo_standard_pax',true),
                 'prezzo_premium_pax' => (float) get_post_meta($id,'yht_prezzo_premium_pax',true),
                 'prezzo_luxury_pax' => (float) get_post_meta($id,'yht_prezzo_luxury_pax',true),
+                'auto_pricing' => get_post_meta($id,'yht_auto_pricing',true) === '1',
                 'experiences' => wp_get_post_terms($id,'yht_esperienza',array('fields'=>'slugs')),
                 'areas' => wp_get_post_terms($id,'yht_area',array('fields'=>'slugs')),
                 'targets' => wp_get_post_terms($id,'yht_target',array('fields'=>'slugs')),
                 'seasons' => wp_get_post_terms($id,'yht_stagione',array('fields'=>'slugs')),
                 'link' => get_permalink($id),
-                'type' => 'custom_tour'
+                'type' => 'custom_tour',
+                
+                // Connected entities with full data
+                'connected_luoghi' => $connected_luoghi,
+                'connected_alloggi' => $connected_alloggi,
+                'connected_servizi' => $connected_servizi,
+                
+                // Organized days with integrated entities
+                'days_with_entities' => self::organize_tour_days($giorni_data, $connected_luoghi, $connected_alloggi, $connected_servizi)
             );
         }
         wp_reset_postdata();
         
         return $results;
+    }
+    
+    /**
+     * Fetch full data for connected luoghi
+     */
+    private static function fetch_connected_luoghi($luoghi_data) {
+        $connected = array();
+        
+        foreach($luoghi_data as $item) {
+            $luogo_id = $item['luogo_id'];
+            $luogo = get_post($luogo_id);
+            
+            if($luogo && $luogo->post_status === 'publish') {
+                $connected[] = array(
+                    'day' => $item['day'],
+                    'time' => $item['time'],
+                    'id' => $luogo_id,
+                    'title' => $luogo->post_title,
+                    'excerpt' => wp_strip_all_tags(get_the_excerpt($luogo)),
+                    'lat' => (float) get_post_meta($luogo_id,'yht_lat',true),
+                    'lng' => (float) get_post_meta($luogo_id,'yht_lng',true),
+                    'cost' => (float) get_post_meta($luogo_id,'yht_cost_ingresso',true),
+                    'durata' => (int) get_post_meta($luogo_id,'yht_durata_min',true),
+                    'exp' => wp_get_post_terms($luogo_id,'yht_esperienza',array('fields'=>'slugs')),
+                    'area' => wp_get_post_terms($luogo_id,'yht_area',array('fields'=>'slugs')),
+                    'link' => get_permalink($luogo_id),
+                    'type' => 'luogo'
+                );
+            }
+        }
+        
+        return $connected;
+    }
+    
+    /**
+     * Fetch full data for connected alloggi
+     */
+    private static function fetch_connected_alloggi($alloggi_data) {
+        $connected = array();
+        
+        foreach($alloggi_data as $item) {
+            $alloggio_id = $item['alloggio_id'];
+            $alloggio = get_post($alloggio_id);
+            
+            if($alloggio && $alloggio->post_status === 'publish') {
+                $connected[] = array(
+                    'day' => $item['day'],
+                    'nights' => $item['nights'],
+                    'id' => $alloggio_id,
+                    'title' => $alloggio->post_title,
+                    'excerpt' => wp_strip_all_tags(get_the_excerpt($alloggio)),
+                    'lat' => (float) get_post_meta($alloggio_id,'yht_lat',true),
+                    'lng' => (float) get_post_meta($alloggio_id,'yht_lng',true),
+                    'fascia_prezzo' => get_post_meta($alloggio_id,'yht_fascia_prezzo',true),
+                    'capienza' => (int) get_post_meta($alloggio_id,'yht_capienza',true),
+                    'prezzo_notte_standard' => (float) get_post_meta($alloggio_id,'yht_prezzo_notte_standard',true),
+                    'prezzo_notte_premium' => (float) get_post_meta($alloggio_id,'yht_prezzo_notte_premium',true),
+                    'prezzo_notte_luxury' => (float) get_post_meta($alloggio_id,'yht_prezzo_notte_luxury',true),
+                    'incluso_colazione' => get_post_meta($alloggio_id,'yht_incluso_colazione',true) === '1',
+                    'incluso_pranzo' => get_post_meta($alloggio_id,'yht_incluso_pranzo',true) === '1',
+                    'incluso_cena' => get_post_meta($alloggio_id,'yht_incluso_cena',true) === '1',
+                    'link' => get_permalink($alloggio_id),
+                    'type' => 'accommodation'
+                );
+            }
+        }
+        
+        return $connected;
+    }
+    
+    /**
+     * Fetch full data for connected servizi
+     */
+    private static function fetch_connected_servizi($servizi_data) {
+        $connected = array();
+        
+        foreach($servizi_data as $item) {
+            $servizio_id = $item['servizio_id'];
+            $servizio = get_post($servizio_id);
+            
+            if($servizio && $servizio->post_status === 'publish') {
+                $connected[] = array(
+                    'day' => $item['day'],
+                    'time' => $item['time'],
+                    'id' => $servizio_id,
+                    'title' => $servizio->post_title,
+                    'excerpt' => wp_strip_all_tags(get_the_excerpt($servizio)),
+                    'lat' => (float) get_post_meta($servizio_id,'yht_lat',true),
+                    'lng' => (float) get_post_meta($servizio_id,'yht_lng',true),
+                    'fascia_prezzo' => get_post_meta($servizio_id,'yht_fascia_prezzo',true),
+                    'orari' => get_post_meta($servizio_id,'yht_orari',true),
+                    'telefono' => get_post_meta($servizio_id,'yht_telefono',true),
+                    'sito_web' => get_post_meta($servizio_id,'yht_sito_web',true),
+                    'prezzo_persona' => (float) get_post_meta($servizio_id,'yht_prezzo_persona',true),
+                    'prezzo_fisso' => (float) get_post_meta($servizio_id,'yht_prezzo_fisso',true),
+                    'durata_servizio' => (int) get_post_meta($servizio_id,'yht_durata_servizio',true),
+                    'capacita_max' => (int) get_post_meta($servizio_id,'yht_capacita_max',true),
+                    'prenotazione_richiesta' => get_post_meta($servizio_id,'yht_prenotazione_richiesta',true) === '1',
+                    'service_type' => wp_get_post_terms($servizio_id,'yht_tipo_servizio',array('fields'=>'slugs')),
+                    'link' => get_permalink($servizio_id),
+                    'type' => 'service'
+                );
+            }
+        }
+        
+        return $connected;
+    }
+    
+    /**
+     * Organize tour days with integrated entity data
+     */
+    private static function organize_tour_days($giorni_data, $luoghi, $alloggi, $servizi) {
+        $organized_days = array();
+        
+        foreach($giorni_data as $day_info) {
+            $day = $day_info['day'];
+            
+            // Get entities for this day
+            $day_luoghi = array_filter($luoghi, function($item) use ($day) { return $item['day'] == $day; });
+            $day_alloggi = array_filter($alloggi, function($item) use ($day) { return $item['day'] == $day; });
+            $day_servizi = array_filter($servizi, function($item) use ($day) { return $item['day'] == $day; });
+            
+            // Sort luoghi by time
+            usort($day_luoghi, function($a, $b) { return strcmp($a['time'], $b['time']); });
+            usort($day_servizi, function($a, $b) { return strcmp($a['time'], $b['time']); });
+            
+            $organized_days[] = array(
+                'day' => $day,
+                'description' => $day_info['description'],
+                'luoghi' => array_values($day_luoghi),
+                'alloggi' => array_values($day_alloggi),
+                'servizi' => array_values($day_servizi),
+                // Create a unified timeline of activities
+                'timeline' => self::create_day_timeline($day_luoghi, $day_servizi)
+            );
+        }
+        
+        return $organized_days;
+    }
+    
+    /**
+     * Create a unified timeline of activities for a day
+     */
+    private static function create_day_timeline($luoghi, $servizi) {
+        $timeline = array();
+        
+        foreach($luoghi as $luogo) {
+            $timeline[] = array(
+                'time' => $luogo['time'],
+                'type' => 'place',
+                'entity' => $luogo
+            );
+        }
+        
+        foreach($servizi as $servizio) {
+            $timeline[] = array(
+                'time' => $servizio['time'],
+                'type' => 'service',
+                'entity' => $servizio
+            );
+        }
+        
+        // Sort by time
+        usort($timeline, function($a, $b) { return strcmp($a['time'], $b['time']); });
+        
+        return $timeline;
     }
 }

@@ -142,12 +142,18 @@ class YHT_Post_Types {
             register_post_meta('yht_alloggio', $field, $meta_s);
         }
 
-        // Tour curati - Enhanced pricing
+        // Tour curati - Enhanced pricing and entity relationships
         register_post_meta('yht_tour','yht_giorni',$meta_s);       // JSON dei giorni
         register_post_meta('yht_tour','yht_prezzo_base',$meta_s);  // float
         register_post_meta('yht_tour','yht_prezzo_standard_pax',$meta_s);
         register_post_meta('yht_tour','yht_prezzo_premium_pax',$meta_s);
         register_post_meta('yht_tour','yht_prezzo_luxury_pax',$meta_s);
+        
+        // Tour entity relationships - JSON arrays storing entity IDs and assignments
+        register_post_meta('yht_tour','yht_tour_luoghi',$meta_s);      // JSON: [{day: 1, luoghi: [id1, id2], time: "10:00"}, ...]
+        register_post_meta('yht_tour','yht_tour_alloggi',$meta_s);     // JSON: [{day: 1, alloggio_id: 123, nights: 1}, ...]
+        register_post_meta('yht_tour','yht_tour_servizi',$meta_s);     // JSON: [{day: 1, servizio_id: 456, type: "ristorante", time: "13:00"}, ...]
+        register_post_meta('yht_tour','yht_auto_pricing',$meta_s);     // boolean: whether to auto-calculate pricing from entities
 
         // Servizi - Enhanced with activity pricing
         $servizio_fields = array('yht_lat','yht_lng','yht_fascia_prezzo','yht_orari','yht_telefono','yht_sito_web',
@@ -209,40 +215,157 @@ class YHT_Post_Types {
         $prezzo_premium = esc_attr(get_post_meta($post->ID,'yht_prezzo_premium_pax',true));
         $prezzo_luxury = esc_attr(get_post_meta($post->ID,'yht_prezzo_luxury_pax',true));
         
+        // Tour entity relationships
+        $tour_luoghi = get_post_meta($post->ID,'yht_tour_luoghi',true) ?: '[]';
+        $tour_alloggi = get_post_meta($post->ID,'yht_tour_alloggi',true) ?: '[]';
+        $tour_servizi = get_post_meta($post->ID,'yht_tour_servizi',true) ?: '[]';
+        $auto_pricing = get_post_meta($post->ID,'yht_auto_pricing',true);
+        
+        $luoghi_data = json_decode($tour_luoghi, true);
+        $alloggi_data = json_decode($tour_alloggi, true);
+        $servizi_data = json_decode($tour_servizi, true);
+        
+        if(!is_array($luoghi_data)) $luoghi_data = array();
+        if(!is_array($alloggi_data)) $alloggi_data = array();
+        if(!is_array($servizi_data)) $servizi_data = array();
+        
         // Decode giorni JSON or set empty array if invalid
         if(!$giorni) $giorni = '[]';
         $giorni_data = json_decode($giorni, true);
         if(!is_array($giorni_data)) $giorni_data = array();
+        
+        // Get available entities for selectors
+        $luoghi = get_posts(array('post_type' => 'yht_luogo', 'posts_per_page' => -1, 'post_status' => 'publish'));
+        $alloggi = get_posts(array('post_type' => 'yht_alloggio', 'posts_per_page' => -1, 'post_status' => 'publish'));
+        $servizi = get_posts(array('post_type' => 'yht_servizio', 'posts_per_page' => -1, 'post_status' => 'publish'));
         ?>
         <style>
             .yht-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-            .yht-grid input[type=text], .yht-grid input[type=number]{width:100%}
+            .yht-grid input[type=text], .yht-grid input[type=number], .yht-grid select{width:100%}
             .yht-full-width{grid-column:1/3}
             .yht-tour-day{background:#f9f9f9;padding:12px;margin:8px 0;border-radius:6px}
             .yht-tour-day h4{margin:0 0 8px;color:#333}
             .yht-tour-day textarea{width:100%;height:60px;resize:vertical}
+            .yht-entity-section{background:#fff;border:1px solid #ddd;padding:12px;margin:8px 0;border-radius:4px}
+            .yht-entity-section h5{margin:0 0 8px;color:#23282d;font-size:13px;font-weight:600}
+            .yht-entity-item{display:flex;align-items:center;gap:8px;margin:4px 0;padding:6px;background:#f6f7f7;border-radius:3px}
+            .yht-entity-item select{flex:1;font-size:12px}
+            .yht-entity-item input[type=time]{width:80px}
+            .yht-entity-item .button-link{color:#a00;text-decoration:none;font-size:12px}
+            .yht-add-entity{margin:8px 0 0;padding:4px 8px;font-size:12px}
+            .yht-pricing-section{background:#e7f3ff;padding:12px;border-radius:6px;margin:8px 0}
         </style>
         <div class="yht-grid">
-            <div class="yht-full-width"><h3>Configurazione Prezzi</h3></div>
-            <div><label>Prezzo Base (€)</label><input type="number" step="0.01" name="yht_prezzo_base" value="<?php echo $prezzo_base; ?>" placeholder="100.00" /></div>
-            <div><label>Prezzo Standard per Persona (€)</label><input type="number" step="0.01" name="yht_prezzo_standard_pax" value="<?php echo $prezzo_standard; ?>" placeholder="150.00" /></div>
-            <div><label>Prezzo Premium per Persona (€)</label><input type="number" step="0.01" name="yht_prezzo_premium_pax" value="<?php echo $prezzo_premium; ?>" placeholder="195.00" /></div>
-            <div><label>Prezzo Luxury per Persona (€)</label><input type="number" step="0.01" name="yht_prezzo_luxury_pax" value="<?php echo $prezzo_luxury; ?>" placeholder="255.00" /></div>
+            <div class="yht-full-width"><h3>🧮 Configurazione Prezzi</h3></div>
+            <div>
+                <label><input type="checkbox" name="yht_auto_pricing" value="1" <?php checked($auto_pricing,'1'); ?> id="yht_auto_pricing" /> Calcolo automatico dai costi entità</label>
+                <p class="description">Se abilitato, i prezzi verranno calcolati automaticamente dai costi di luoghi, alloggi e servizi selezionati.</p>
+            </div>
+            <div></div>
+            <div class="yht-pricing-section yht-full-width" id="yht_manual_pricing">
+                <div class="yht-grid">
+                    <div><label>Prezzo Base (€)</label><input type="number" step="0.01" name="yht_prezzo_base" value="<?php echo $prezzo_base; ?>" placeholder="100.00" /></div>
+                    <div><label>Prezzo Standard per Persona (€)</label><input type="number" step="0.01" name="yht_prezzo_standard_pax" value="<?php echo $prezzo_standard; ?>" placeholder="150.00" /></div>
+                    <div><label>Prezzo Premium per Persona (€)</label><input type="number" step="0.01" name="yht_prezzo_premium_pax" value="<?php echo $prezzo_premium; ?>" placeholder="195.00" /></div>
+                    <div><label>Prezzo Luxury per Persona (€)</label><input type="number" step="0.01" name="yht_prezzo_luxury_pax" value="<?php echo $prezzo_luxury; ?>" placeholder="255.00" /></div>
+                </div>
+            </div>
             
-            <div class="yht-full-width"><h3>Itinerario Giorni</h3></div>
+            <div class="yht-full-width"><h3>🗓️ Itinerario e Entità Collegate</h3></div>
             <div class="yht-full-width">
-                <p class="description">Configura l'itinerario giorno per giorno. Il JSON verrà aggiornato automaticamente.</p>
+                <p class="description">Configura l'itinerario giorno per giorno e seleziona luoghi, alloggi e servizi reali dal database.</p>
                 <div id="yht-giorni-container">
                     <?php if(empty($giorni_data)): ?>
-                        <div class="yht-tour-day">
-                            <h4>Giorno 1</h4>
+                        <div class="yht-tour-day" data-day="1">
+                            <h4>📅 Giorno 1</h4>
                             <textarea name="yht_giorno_1" placeholder="Descrizione attività del primo giorno..."></textarea>
+                            
+                            <div class="yht-entity-section">
+                                <h5>📍 Luoghi da Visitare</h5>
+                                <div class="yht-luoghi-container"></div>
+                                <button type="button" class="button yht-add-entity yht-add-luogo">+ Aggiungi Luogo</button>
+                            </div>
+                            
+                            <div class="yht-entity-section">
+                                <h5>🏨 Alloggio</h5>
+                                <div class="yht-alloggi-container"></div>
+                                <button type="button" class="button yht-add-entity yht-add-alloggio">+ Aggiungi Alloggio</button>
+                            </div>
+                            
+                            <div class="yht-entity-section">
+                                <h5>🍽️ Servizi (Ristoranti, Trasporti, etc.)</h5>
+                                <div class="yht-servizi-container"></div>
+                                <button type="button" class="button yht-add-entity yht-add-servizio">+ Aggiungi Servizio</button>
+                            </div>
                         </div>
                     <?php else: ?>
                         <?php foreach($giorni_data as $index => $giorno): ?>
-                            <div class="yht-tour-day">
-                                <h4>Giorno <?php echo $index + 1; ?></h4>
-                                <textarea name="yht_giorno_<?php echo $index + 1; ?>" placeholder="Descrizione attività..."><?php echo esc_textarea($giorno['description'] ?? ''); ?></textarea>
+                            <?php 
+                            $day_num = $index + 1;
+                            $day_luoghi = array_filter($luoghi_data, function($item) use ($day_num) { return ($item['day'] ?? 0) == $day_num; });
+                            $day_alloggi = array_filter($alloggi_data, function($item) use ($day_num) { return ($item['day'] ?? 0) == $day_num; });
+                            $day_servizi = array_filter($servizi_data, function($item) use ($day_num) { return ($item['day'] ?? 0) == $day_num; });
+                            ?>
+                            <div class="yht-tour-day" data-day="<?php echo $day_num; ?>">
+                                <h4>📅 Giorno <?php echo $day_num; ?></h4>
+                                <textarea name="yht_giorno_<?php echo $day_num; ?>" placeholder="Descrizione attività..."><?php echo esc_textarea($giorno['description'] ?? ''); ?></textarea>
+                                
+                                <div class="yht-entity-section">
+                                    <h5>📍 Luoghi da Visitare</h5>
+                                    <div class="yht-luoghi-container">
+                                        <?php foreach($day_luoghi as $luogo_item): ?>
+                                            <div class="yht-entity-item">
+                                                <select class="yht-luogo-select" data-day="<?php echo $day_num; ?>">
+                                                    <option value="">Seleziona luogo...</option>
+                                                    <?php foreach($luoghi as $luogo): ?>
+                                                        <option value="<?php echo $luogo->ID; ?>" <?php selected($luogo_item['luogo_id'] ?? '', $luogo->ID); ?>><?php echo esc_html($luogo->post_title); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <input type="time" class="yht-luogo-time" value="<?php echo esc_attr($luogo_item['time'] ?? '10:00'); ?>" />
+                                                <a href="#" class="button-link yht-remove-entity">Rimuovi</a>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <button type="button" class="button yht-add-entity yht-add-luogo">+ Aggiungi Luogo</button>
+                                </div>
+                                
+                                <div class="yht-entity-section">
+                                    <h5>🏨 Alloggio</h5>
+                                    <div class="yht-alloggi-container">
+                                        <?php foreach($day_alloggi as $alloggio_item): ?>
+                                            <div class="yht-entity-item">
+                                                <select class="yht-alloggio-select" data-day="<?php echo $day_num; ?>">
+                                                    <option value="">Seleziona alloggio...</option>
+                                                    <?php foreach($alloggi as $alloggio): ?>
+                                                        <option value="<?php echo $alloggio->ID; ?>" <?php selected($alloggio_item['alloggio_id'] ?? '', $alloggio->ID); ?>><?php echo esc_html($alloggio->post_title); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <input type="number" class="yht-alloggio-nights" placeholder="Notti" min="1" value="<?php echo esc_attr($alloggio_item['nights'] ?? 1); ?>" style="width:60px" />
+                                                <a href="#" class="button-link yht-remove-entity">Rimuovi</a>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <button type="button" class="button yht-add-entity yht-add-alloggio">+ Aggiungi Alloggio</button>
+                                </div>
+                                
+                                <div class="yht-entity-section">
+                                    <h5>🍽️ Servizi (Ristoranti, Trasporti, etc.)</h5>
+                                    <div class="yht-servizi-container">
+                                        <?php foreach($day_servizi as $servizio_item): ?>
+                                            <div class="yht-entity-item">
+                                                <select class="yht-servizio-select" data-day="<?php echo $day_num; ?>">
+                                                    <option value="">Seleziona servizio...</option>
+                                                    <?php foreach($servizi as $servizio): ?>
+                                                        <option value="<?php echo $servizio->ID; ?>" <?php selected($servizio_item['servizio_id'] ?? '', $servizio->ID); ?>><?php echo esc_html($servizio->post_title); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                                <input type="time" class="yht-servizio-time" value="<?php echo esc_attr($servizio_item['time'] ?? '13:00'); ?>" />
+                                                <a href="#" class="button-link yht-remove-entity">Rimuovi</a>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <button type="button" class="button yht-add-entity yht-add-servizio">+ Aggiungi Servizio</button>
+                                </div>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -252,11 +375,28 @@ class YHT_Post_Types {
                     <button type="button" id="yht-remove-day" class="button" <?php echo empty($giorni_data) || count($giorni_data) <= 1 ? 'disabled' : ''; ?>>- Rimuovi Ultimo Giorno</button>
                 </p>
                 <input type="hidden" name="yht_giorni" id="yht_giorni_json" value="<?php echo esc_attr($giorni); ?>" />
+                <input type="hidden" name="yht_tour_luoghi" id="yht_tour_luoghi_json" value="<?php echo esc_attr($tour_luoghi); ?>" />
+                <input type="hidden" name="yht_tour_alloggi" id="yht_tour_alloggi_json" value="<?php echo esc_attr($tour_alloggi); ?>" />
+                <input type="hidden" name="yht_tour_servizi" id="yht_tour_servizi_json" value="<?php echo esc_attr($tour_servizi); ?>" />
             </div>
         </div>
         
         <script>
         jQuery(document).ready(function($) {
+            // Entity options for selectors
+            var luoghiOptions = '<?php foreach($luoghi as $luogo) echo "<option value=\"{$luogo->ID}\">" . esc_js($luogo->post_title) . "</option>"; ?>';
+            var alloggiOptions = '<?php foreach($alloggi as $alloggio) echo "<option value=\"{$alloggio->ID}\">" . esc_js($alloggio->post_title) . "</option>"; ?>';
+            var serviziOptions = '<?php foreach($servizi as $servizio) echo "<option value=\"{$servizio->ID}\">" . esc_js($servizio->post_title) . "</option>"; ?>';
+            
+            // Auto pricing toggle
+            $('#yht_auto_pricing').change(function() {
+                if($(this).is(':checked')) {
+                    $('#yht_manual_pricing').hide();
+                } else {
+                    $('#yht_manual_pricing').show();
+                }
+            }).trigger('change');
+            
             function updateGiorniJSON() {
                 var giorni = [];
                 $('#yht-giorni-container .yht-tour-day').each(function(index) {
@@ -271,11 +411,134 @@ class YHT_Post_Types {
                 $('#yht_giorni_json').val(JSON.stringify(giorni));
             }
             
-            $('#yht-add-day').click(function() {
+            function updateEntityJSONs() {
+                var luoghi = [];
+                var alloggi = [];
+                var servizi = [];
+                
+                $('#yht-giorni-container .yht-tour-day').each(function() {
+                    var day = parseInt($(this).data('day'));
+                    
+                    // Collect luoghi
+                    $(this).find('.yht-luoghi-container .yht-entity-item').each(function() {
+                        var luogo_id = $(this).find('.yht-luogo-select').val();
+                        var time = $(this).find('.yht-luogo-time').val();
+                        if(luogo_id) {
+                            luoghi.push({
+                                day: day,
+                                luogo_id: parseInt(luogo_id),
+                                time: time
+                            });
+                        }
+                    });
+                    
+                    // Collect alloggi
+                    $(this).find('.yht-alloggi-container .yht-entity-item').each(function() {
+                        var alloggio_id = $(this).find('.yht-alloggio-select').val();
+                        var nights = $(this).find('.yht-alloggio-nights').val();
+                        if(alloggio_id) {
+                            alloggi.push({
+                                day: day,
+                                alloggio_id: parseInt(alloggio_id),
+                                nights: parseInt(nights) || 1
+                            });
+                        }
+                    });
+                    
+                    // Collect servizi
+                    $(this).find('.yht-servizi-container .yht-entity-item').each(function() {
+                        var servizio_id = $(this).find('.yht-servizio-select').val();
+                        var time = $(this).find('.yht-servizio-time').val();
+                        if(servizio_id) {
+                            servizi.push({
+                                day: day,
+                                servizio_id: parseInt(servizio_id),
+                                time: time
+                            });
+                        }
+                    });
+                });
+                
+                $('#yht_tour_luoghi_json').val(JSON.stringify(luoghi));
+                $('#yht_tour_alloggi_json').val(JSON.stringify(alloggi));
+                $('#yht_tour_servizi_json').val(JSON.stringify(servizi));
+            }
+            
+            function addNewDay() {
                 var dayCount = $('#yht-giorni-container .yht-tour-day').length + 1;
-                var newDay = '<div class="yht-tour-day"><h4>Giorno ' + dayCount + '</h4><textarea name="yht_giorno_' + dayCount + '" placeholder="Descrizione attività..."></textarea></div>';
+                var newDay = $('<div class="yht-tour-day" data-day="' + dayCount + '">' +
+                    '<h4>📅 Giorno ' + dayCount + '</h4>' +
+                    '<textarea name="yht_giorno_' + dayCount + '" placeholder="Descrizione attività..."></textarea>' +
+                    
+                    '<div class="yht-entity-section">' +
+                        '<h5>📍 Luoghi da Visitare</h5>' +
+                        '<div class="yht-luoghi-container"></div>' +
+                        '<button type="button" class="button yht-add-entity yht-add-luogo">+ Aggiungi Luogo</button>' +
+                    '</div>' +
+                    
+                    '<div class="yht-entity-section">' +
+                        '<h5>🏨 Alloggio</h5>' +
+                        '<div class="yht-alloggi-container"></div>' +
+                        '<button type="button" class="button yht-add-entity yht-add-alloggio">+ Aggiungi Alloggio</button>' +
+                    '</div>' +
+                    
+                    '<div class="yht-entity-section">' +
+                        '<h5>🍽️ Servizi (Ristoranti, Trasporti, etc.)</h5>' +
+                        '<div class="yht-servizi-container"></div>' +
+                        '<button type="button" class="button yht-add-entity yht-add-servizio">+ Aggiungi Servizio</button>' +
+                    '</div>' +
+                '</div>');
+                
                 $('#yht-giorni-container').append(newDay);
                 $('#yht-remove-day').prop('disabled', false);
+            }
+            
+            // Add entity items
+            $(document).on('click', '.yht-add-luogo', function() {
+                var dayNum = $(this).closest('.yht-tour-day').data('day');
+                var newItem = $('<div class="yht-entity-item">' +
+                    '<select class="yht-luogo-select" data-day="' + dayNum + '">' +
+                        '<option value="">Seleziona luogo...</option>' + luoghiOptions +
+                    '</select>' +
+                    '<input type="time" class="yht-luogo-time" value="10:00" />' +
+                    '<a href="#" class="button-link yht-remove-entity">Rimuovi</a>' +
+                '</div>');
+                $(this).prev('.yht-luoghi-container').append(newItem);
+            });
+            
+            $(document).on('click', '.yht-add-alloggio', function() {
+                var dayNum = $(this).closest('.yht-tour-day').data('day');
+                var newItem = $('<div class="yht-entity-item">' +
+                    '<select class="yht-alloggio-select" data-day="' + dayNum + '">' +
+                        '<option value="">Seleziona alloggio...</option>' + alloggiOptions +
+                    '</select>' +
+                    '<input type="number" class="yht-alloggio-nights" placeholder="Notti" min="1" value="1" style="width:60px" />' +
+                    '<a href="#" class="button-link yht-remove-entity">Rimuovi</a>' +
+                '</div>');
+                $(this).prev('.yht-alloggi-container').append(newItem);
+            });
+            
+            $(document).on('click', '.yht-add-servizio', function() {
+                var dayNum = $(this).closest('.yht-tour-day').data('day');
+                var newItem = $('<div class="yht-entity-item">' +
+                    '<select class="yht-servizio-select" data-day="' + dayNum + '">' +
+                        '<option value="">Seleziona servizio...</option>' + serviziOptions +
+                    '</select>' +
+                    '<input type="time" class="yht-servizio-time" value="13:00" />' +
+                    '<a href="#" class="button-link yht-remove-entity">Rimuovi</a>' +
+                '</div>');
+                $(this).prev('.yht-servizi-container').append(newItem);
+            });
+            
+            // Remove entity items
+            $(document).on('click', '.yht-remove-entity', function(e) {
+                e.preventDefault();
+                $(this).closest('.yht-entity-item').remove();
+                updateEntityJSONs();
+            });
+            
+            $('#yht-add-day').click(function() {
+                addNewDay();
             });
             
             $('#yht-remove-day').click(function() {
@@ -287,10 +550,12 @@ class YHT_Post_Types {
                     }
                 }
                 updateGiorniJSON();
+                updateEntityJSONs();
             });
             
-            $(document).on('input', '#yht-giorni-container textarea', function() {
+            $(document).on('input change', '#yht-giorni-container textarea, #yht-giorni-container select, #yht-giorni-container input', function() {
                 updateGiorniJSON();
+                updateEntityJSONs();
             });
         });
         </script>
@@ -334,6 +599,9 @@ class YHT_Post_Types {
             }
         }
         
+        // Save auto pricing setting
+        update_post_meta($post_id,'yht_auto_pricing', isset($_POST['yht_auto_pricing']) ? '1' : '');
+        
         // Process giorni from individual day textareas
         $giorni_data = array();
         $day_num = 1;
@@ -350,6 +618,135 @@ class YHT_Post_Types {
         
         // Save as JSON
         update_post_meta($post_id, 'yht_giorni', wp_json_encode($giorni_data));
+        
+        // Save entity relationships from hidden JSON fields (updated via JavaScript)
+        if(isset($_POST['yht_tour_luoghi'])) {
+            $luoghi_data = json_decode(stripslashes($_POST['yht_tour_luoghi']), true);
+            if(is_array($luoghi_data)) {
+                // Validate and sanitize luoghi data
+                $clean_luoghi = array();
+                foreach($luoghi_data as $item) {
+                    if(isset($item['day'], $item['luogo_id']) && is_numeric($item['luogo_id'])) {
+                        $clean_luoghi[] = array(
+                            'day' => (int)$item['day'],
+                            'luogo_id' => (int)$item['luogo_id'],
+                            'time' => sanitize_text_field($item['time'] ?? '10:00')
+                        );
+                    }
+                }
+                update_post_meta($post_id, 'yht_tour_luoghi', wp_json_encode($clean_luoghi));
+            }
+        }
+        
+        if(isset($_POST['yht_tour_alloggi'])) {
+            $alloggi_data = json_decode(stripslashes($_POST['yht_tour_alloggi']), true);
+            if(is_array($alloggi_data)) {
+                // Validate and sanitize alloggi data
+                $clean_alloggi = array();
+                foreach($alloggi_data as $item) {
+                    if(isset($item['day'], $item['alloggio_id']) && is_numeric($item['alloggio_id'])) {
+                        $clean_alloggi[] = array(
+                            'day' => (int)$item['day'],
+                            'alloggio_id' => (int)$item['alloggio_id'],
+                            'nights' => (int)($item['nights'] ?? 1)
+                        );
+                    }
+                }
+                update_post_meta($post_id, 'yht_tour_alloggi', wp_json_encode($clean_alloggi));
+            }
+        }
+        
+        if(isset($_POST['yht_tour_servizi'])) {
+            $servizi_data = json_decode(stripslashes($_POST['yht_tour_servizi']), true);
+            if(is_array($servizi_data)) {
+                // Validate and sanitize servizi data
+                $clean_servizi = array();
+                foreach($servizi_data as $item) {
+                    if(isset($item['day'], $item['servizio_id']) && is_numeric($item['servizio_id'])) {
+                        $clean_servizi[] = array(
+                            'day' => (int)$item['day'],
+                            'servizio_id' => (int)$item['servizio_id'],
+                            'time' => sanitize_text_field($item['time'] ?? '13:00')
+                        );
+                    }
+                }
+                update_post_meta($post_id, 'yht_tour_servizi', wp_json_encode($clean_servizi));
+            }
+        }
+        
+        // If auto pricing is enabled, calculate prices from connected entities
+        if(isset($_POST['yht_auto_pricing']) && $_POST['yht_auto_pricing'] === '1') {
+            $this->calculate_auto_pricing($post_id);
+        }
+    }
+    
+    /**
+     * Calculate automatic pricing based on connected entities
+     */
+    private function calculate_auto_pricing($post_id) {
+        $luoghi_json = get_post_meta($post_id,'yht_tour_luoghi',true);
+        $alloggi_json = get_post_meta($post_id,'yht_tour_alloggi',true);
+        $servizi_json = get_post_meta($post_id,'yht_tour_servizi',true);
+        
+        $luoghi_data = json_decode($luoghi_json, true) ?: array();
+        $alloggi_data = json_decode($alloggi_json, true) ?: array();
+        $servizi_data = json_decode($servizi_json, true) ?: array();
+        
+        $base_cost = 0;
+        $standard_cost = 0;
+        $premium_cost = 0;
+        $luxury_cost = 0;
+        
+        // Calculate costs from luoghi (entry fees)
+        foreach($luoghi_data as $luogo_item) {
+            $luogo_id = $luogo_item['luogo_id'];
+            $entry_cost = (float)get_post_meta($luogo_id,'yht_cost_ingresso',true);
+            $base_cost += $entry_cost;
+        }
+        
+        // Calculate costs from alloggi
+        foreach($alloggi_data as $alloggio_item) {
+            $alloggio_id = $alloggio_item['alloggio_id'];
+            $nights = $alloggio_item['nights'];
+            
+            $standard_night = (float)get_post_meta($alloggio_id,'yht_prezzo_notte_standard',true);
+            $premium_night = (float)get_post_meta($alloggio_id,'yht_prezzo_notte_premium',true);
+            $luxury_night = (float)get_post_meta($alloggio_id,'yht_prezzo_notte_luxury',true);
+            
+            $standard_cost += $standard_night * $nights;
+            $premium_cost += $premium_night * $nights;
+            $luxury_cost += $luxury_night * $nights;
+        }
+        
+        // Calculate costs from servizi
+        foreach($servizi_data as $servizio_item) {
+            $servizio_id = $servizio_item['servizio_id'];
+            $prezzo_persona = (float)get_post_meta($servizio_id,'yht_prezzo_persona',true);
+            $prezzo_fisso = (float)get_post_meta($servizio_id,'yht_prezzo_fisso',true);
+            
+            // For now, use per-person pricing. In a real system, this might be more complex
+            if($prezzo_persona > 0) {
+                $standard_cost += $prezzo_persona;
+                $premium_cost += $prezzo_persona * 1.2; // Premium includes better service
+                $luxury_cost += $prezzo_persona * 1.5;  // Luxury includes premium service
+            } elseif($prezzo_fisso > 0) {
+                // Fixed costs divided by average group size (e.g., 2 people)
+                $per_person_fixed = $prezzo_fisso / 2;
+                $standard_cost += $per_person_fixed;
+                $premium_cost += $per_person_fixed;
+                $luxury_cost += $per_person_fixed;
+            }
+        }
+        
+        // Add margin and update prices
+        $margin_standard = 1.3; // 30% margin
+        $margin_premium = 1.4;   // 40% margin  
+        $margin_luxury = 1.6;    // 60% margin
+        
+        update_post_meta($post_id, 'yht_prezzo_base', round($base_cost, 2));
+        update_post_meta($post_id, 'yht_prezzo_standard_pax', round($standard_cost * $margin_standard, 2));
+        update_post_meta($post_id, 'yht_prezzo_premium_pax', round($premium_cost * $margin_premium, 2));
+        update_post_meta($post_id, 'yht_prezzo_luxury_pax', round($luxury_cost * $margin_luxury, 2));
     }
     
     /**

@@ -97,22 +97,31 @@ class YHT_Rest_Controller {
         // Use custom tours if available
         if(!empty($custom_tours)) {
             foreach($custom_tours as $custom_tour) {
-                // Convert custom tour to the expected format
+                // Convert custom tour to the expected format with real entity data
                 $tour_data = array(
                     'name' => $custom_tour['name'],
                     'description' => $custom_tour['description'],
-                    'days' => $custom_tour['giorni'],
-                    'stops' => count($custom_tour['giorni']),
+                    'days' => $custom_tour['days_with_entities'], // Use organized days with entities
+                    'stops' => count($custom_tour['connected_luoghi']),
                     'totalEntryCost' => $custom_tour['prezzo_base'],
-                    'accommodations' => $accommodations,
-                    'services' => $services,
+                    'accommodations' => $custom_tour['connected_alloggi'],
+                    'services' => $custom_tour['connected_servizi'],
                     'pricing' => array(
                         'standard' => $custom_tour['prezzo_standard_pax'],
                         'premium' => $custom_tour['prezzo_premium_pax'],
                         'luxury' => $custom_tour['prezzo_luxury_pax']
                     ),
                     'type' => 'custom',
-                    'id' => $custom_tour['id']
+                    'id' => $custom_tour['id'],
+                    'auto_pricing' => $custom_tour['auto_pricing'],
+                    
+                    // Additional metadata for the frontend
+                    'has_real_entities' => true,
+                    'entity_summary' => array(
+                        'luoghi_count' => count($custom_tour['connected_luoghi']),
+                        'alloggi_count' => count($custom_tour['connected_alloggi']),
+                        'servizi_count' => count($custom_tour['connected_servizi'])
+                    )
                 );
                 $tours[] = $tour_data;
             }
