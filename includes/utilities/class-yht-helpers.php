@@ -669,7 +669,7 @@ class YHT_Helpers {
     }
     
     /**
-     * Organize tour days with integrated entity data - now supports multiple options per category
+     * Organize tour days with integrated entity data - enhanced for full multiple options consistency
      */
     private static function organize_tour_days($giorni_data, $luoghi, $alloggi, $servizi) {
         $organized_days = array();
@@ -682,13 +682,18 @@ class YHT_Helpers {
             $day_alloggi = array_filter($alloggi, function($item) use ($day) { return $item['day'] == $day; });
             $day_servizi = array_filter($servizi, function($item) use ($day) { return $item['day'] == $day; });
             
-            // Sort groups by time
+            // Sort groups by time for consistency
             usort($day_luoghi, function($a, $b) { return strcmp($a['time'], $b['time']); });
             usort($day_servizi, function($a, $b) { return strcmp($a['time'], $b['time']); });
+            
+            // Calculate comprehensive options summary for this day
+            $day_options_summary = self::calculate_day_options_summary($day_luoghi, $day_alloggi, $day_servizi);
             
             $organized_days[] = array(
                 'day' => $day,
                 'description' => $day_info['description'],
+                
+                // Multiple options groups - MAIN FEATURE
                 'luoghi_groups' => array_values($day_luoghi), // Groups of alternative luoghi options
                 'alloggi_groups' => array_values($day_alloggi), // Groups of alternative alloggi options
                 'servizi_groups' => array_values($day_servizi), // Groups of alternative servizi options
@@ -698,24 +703,177 @@ class YHT_Helpers {
                 'alloggi' => self::flatten_entity_groups($day_alloggi, 'options'), 
                 'servizi' => self::flatten_entity_groups($day_servizi, 'options'),
                 
-                // Enhanced timeline showing multiple options
+                // Enhanced timeline showing multiple options with business logic
                 'timeline' => self::create_enhanced_timeline($day_luoghi, $day_servizi),
+                'timeline_with_options' => self::create_options_aware_timeline($day_luoghi, $day_servizi),
                 
-                // Summary for quick access
-                'options_summary' => array(
-                    'luoghi_options_count' => array_sum(array_column($day_luoghi, 'options_count')),
-                    'alloggi_options_count' => array_sum(array_column($day_alloggi, 'options_count')),
-                    'servizi_options_count' => array_sum(array_column($day_servizi, 'options_count')),
-                    'has_multiple_options' => (
-                        count($day_luoghi) > 0 && $day_luoghi[0]['options_count'] > 1 ||
-                        count($day_alloggi) > 0 && $day_alloggi[0]['options_count'] > 1 ||
-                        count($day_servizi) > 0 && $day_servizi[0]['options_count'] > 1
-                    )
+                // Comprehensive options summary for this specific day
+                'options_summary' => $day_options_summary,
+                
+                // Business intelligence data
+                'business_data' => array(
+                    'overbooking_risk' => $day_options_summary['has_multiple_options'] ? 'low' : 'high',
+                    'flexibility_score' => self::calculate_day_flexibility_score($day_options_summary),
+                    'choice_diversity' => self::calculate_choice_diversity($day_luoghi, $day_alloggi, $day_servizi),
+                    'operator_control' => $day_options_summary['total_options'] >= 3 ? 'excellent' : ($day_options_summary['total_options'] >= 2 ? 'good' : 'basic')
+                ),
+                
+                // Quality assurance data
+                'quality_metrics' => array(
+                    'options_per_category' => array(
+                        'luoghi' => array_sum(array_column($day_luoghi, 'options_count')),
+                        'alloggi' => array_sum(array_column($day_alloggi, 'options_count')),
+                        'servizi' => array_sum(array_column($day_servizi, 'options_count'))
+                    ),
+                    'minimum_guaranteed' => min(
+                        array_sum(array_column($day_luoghi, 'options_count')) ?: 0,
+                        array_sum(array_column($day_alloggi, 'options_count')) ?: 0,
+                        array_sum(array_column($day_servizi, 'options_count')) ?: 0
+                    ),
+                    'redundancy_level' => $day_options_summary['total_options'] > 3 ? 'high' : ($day_options_summary['total_options'] > 1 ? 'medium' : 'none')
                 )
             );
         }
         
         return $organized_days;
+    }
+    
+    /**
+     * Calculate comprehensive options summary for a specific day
+     */
+    private static function calculate_day_options_summary($luoghi_groups, $alloggi_groups, $servizi_groups) {
+        $luoghi_options_count = array_sum(array_column($luoghi_groups, 'options_count'));
+        $alloggi_options_count = array_sum(array_column($alloggi_groups, 'options_count'));
+        $servizi_options_count = array_sum(array_column($servizi_groups, 'options_count'));
+        $total_options = $luoghi_options_count + $alloggi_options_count + $servizi_options_count;
+        
+        return array(
+            'luoghi_options_count' => $luoghi_options_count,
+            'alloggi_options_count' => $alloggi_options_count,
+            'servizi_options_count' => $servizi_options_count,
+            'total_options' => $total_options,
+            'has_multiple_options' => (
+                (count($luoghi_groups) > 0 && $luoghi_groups[0]['options_count'] > 1) ||
+                (count($alloggi_groups) > 0 && $alloggi_groups[0]['options_count'] > 1) ||
+                (count($servizi_groups) > 0 && $servizi_groups[0]['options_count'] > 1)
+            ),
+            'categories_with_options' => array(
+                'luoghi' => count($luoghi_groups) > 0,
+                'alloggi' => count($alloggi_groups) > 0,
+                'servizi' => count($servizi_groups) > 0
+            ),
+            'coverage_completeness' => array(
+                'has_luoghi' => count($luoghi_groups) > 0,
+                'has_alloggi' => count($alloggi_groups) > 0,
+                'has_servizi' => count($servizi_groups) > 0,
+                'all_categories_covered' => count($luoghi_groups) > 0 && count($alloggi_groups) > 0 && count($servizi_groups) > 0
+            )
+        );
+    }
+    
+    /**
+     * Calculate flexibility score for a day based on options availability
+     */
+    private static function calculate_day_flexibility_score($options_summary) {
+        $score = 0;
+        
+        // Base score from total options
+        $score += min(5, $options_summary['total_options']); // Max 5 points
+        
+        // Bonus for having multiple options in each category
+        if($options_summary['luoghi_options_count'] > 1) $score += 2;
+        if($options_summary['alloggi_options_count'] > 1) $score += 2;
+        if($options_summary['servizi_options_count'] > 1) $score += 2;
+        
+        // Bonus for complete coverage
+        if($options_summary['coverage_completeness']['all_categories_covered']) $score += 1;
+        
+        return min(10, $score); // Cap at 10
+    }
+    
+    /**
+     * Calculate choice diversity based on geographic and type variety
+     */
+    private static function calculate_choice_diversity($luoghi_groups, $alloggi_groups, $servizi_groups) {
+        $diversity_score = 0;
+        $total_unique_entities = 0;
+        
+        // Count unique entities across all groups
+        foreach($luoghi_groups as $group) {
+            $total_unique_entities += count($group['options'] ?? array());
+        }
+        foreach($alloggi_groups as $group) {
+            $total_unique_entities += count($group['options'] ?? array());
+        }
+        foreach($servizi_groups as $group) {
+            $total_unique_entities += count($group['options'] ?? array());
+        }
+        
+        // Basic diversity from entity count
+        $diversity_score = min(8, $total_unique_entities);
+        
+        // Bonus for balanced distribution
+        $luoghi_count = array_sum(array_column($luoghi_groups, 'options_count'));
+        $alloggi_count = array_sum(array_column($alloggi_groups, 'options_count'));
+        $servizi_count = array_sum(array_column($servizi_groups, 'options_count'));
+        
+        if($luoghi_count > 0 && $alloggi_count > 0 && $servizi_count > 0) {
+            $diversity_score += 2; // Bonus for having all categories
+        }
+        
+        return array(
+            'score' => min(10, $diversity_score),
+            'level' => $diversity_score >= 8 ? 'excellent' : ($diversity_score >= 5 ? 'good' : ($diversity_score >= 3 ? 'moderate' : 'basic')),
+            'unique_entities' => $total_unique_entities
+        );
+    }
+    
+    /**
+     * Create options-aware timeline that shows alternative choices
+     */
+    private static function create_options_aware_timeline($luoghi_groups, $servizi_groups) {
+        $timeline = array();
+        
+        foreach($luoghi_groups as $group) {
+            $timeline[] = array(
+                'time' => $group['time'],
+                'type' => 'places_group',
+                'group' => $group,
+                'options_count' => $group['options_count'],
+                'note' => $group['note'],
+                'flexibility' => $group['options_count'] > 1 ? 'high' : 'none',
+                'primary_option' => isset($group['options'][0]) ? $group['options'][0] : null,
+                'alternative_count' => max(0, $group['options_count'] - 1),
+                'business_impact' => array(
+                    'overbooking_protection' => $group['options_count'] > 1,
+                    'choice_available' => $group['options_count'] > 1,
+                    'risk_mitigation' => $group['options_count'] >= 2 ? 'good' : 'basic'
+                )
+            );
+        }
+        
+        foreach($servizi_groups as $group) {
+            $timeline[] = array(
+                'time' => $group['time'],
+                'type' => 'services_group',
+                'group' => $group,
+                'options_count' => $group['options_count'],
+                'note' => $group['note'],
+                'flexibility' => $group['options_count'] > 1 ? 'high' : 'none',
+                'primary_option' => isset($group['options'][0]) ? $group['options'][0] : null,
+                'alternative_count' => max(0, $group['options_count'] - 1),
+                'business_impact' => array(
+                    'overbooking_protection' => $group['options_count'] > 1,
+                    'choice_available' => $group['options_count'] > 1,
+                    'risk_mitigation' => $group['options_count'] >= 2 ? 'good' : 'basic'
+                )
+            );
+        }
+        
+        // Sort by time for chronological consistency
+        usort($timeline, function($a, $b) { return strcmp($a['time'], $b['time']); });
+        
+        return $timeline;
     }
     
     /**

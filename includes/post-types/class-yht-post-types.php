@@ -750,32 +750,11 @@ class YHT_Post_Types {
         // Save as JSON
         update_post_meta($post_id, 'yht_giorni', wp_json_encode($giorni_data));
         
-        // Save entity relationships from hidden JSON fields (updated via JavaScript)
+        // Enhanced validation and processing of entity relationships for consistency
         if(isset($_POST['yht_tour_luoghi'])) {
             $luoghi_data = json_decode(stripslashes($_POST['yht_tour_luoghi']), true);
             if(is_array($luoghi_data)) {
-                // Validate and sanitize luoghi data with multiple IDs
-                $clean_luoghi = array();
-                foreach($luoghi_data as $item) {
-                    if(isset($item['day'], $item['luoghi_ids']) && is_array($item['luoghi_ids'])) {
-                        // Validate all luogo IDs are numeric
-                        $valid_ids = array();
-                        foreach($item['luoghi_ids'] as $id) {
-                            if(is_numeric($id)) {
-                                $valid_ids[] = (int)$id;
-                            }
-                        }
-                        
-                        if(!empty($valid_ids)) {
-                            $clean_luoghi[] = array(
-                                'day' => (int)$item['day'],
-                                'luoghi_ids' => $valid_ids,
-                                'time' => sanitize_text_field($item['time'] ?? '10:00'),
-                                'note' => sanitize_text_field($item['note'] ?? '')
-                            );
-                        }
-                    }
-                }
+                $clean_luoghi = self::validate_and_clean_entity_data($luoghi_data, 'luoghi');
                 update_post_meta($post_id, 'yht_tour_luoghi', wp_json_encode($clean_luoghi));
             }
         }
@@ -783,28 +762,7 @@ class YHT_Post_Types {
         if(isset($_POST['yht_tour_alloggi'])) {
             $alloggi_data = json_decode(stripslashes($_POST['yht_tour_alloggi']), true);
             if(is_array($alloggi_data)) {
-                // Validate and sanitize alloggi data with multiple IDs
-                $clean_alloggi = array();
-                foreach($alloggi_data as $item) {
-                    if(isset($item['day'], $item['alloggi_ids']) && is_array($item['alloggi_ids'])) {
-                        // Validate all alloggio IDs are numeric
-                        $valid_ids = array();
-                        foreach($item['alloggi_ids'] as $id) {
-                            if(is_numeric($id)) {
-                                $valid_ids[] = (int)$id;
-                            }
-                        }
-                        
-                        if(!empty($valid_ids)) {
-                            $clean_alloggi[] = array(
-                                'day' => (int)$item['day'],
-                                'alloggi_ids' => $valid_ids,
-                                'nights' => (int)($item['nights'] ?? 1),
-                                'note' => sanitize_text_field($item['note'] ?? '')
-                            );
-                        }
-                    }
-                }
+                $clean_alloggi = self::validate_and_clean_entity_data($alloggi_data, 'alloggi');
                 update_post_meta($post_id, 'yht_tour_alloggi', wp_json_encode($clean_alloggi));
             }
         }
@@ -812,28 +770,7 @@ class YHT_Post_Types {
         if(isset($_POST['yht_tour_servizi'])) {
             $servizi_data = json_decode(stripslashes($_POST['yht_tour_servizi']), true);
             if(is_array($servizi_data)) {
-                // Validate and sanitize servizi data with multiple IDs
-                $clean_servizi = array();
-                foreach($servizi_data as $item) {
-                    if(isset($item['day'], $item['servizi_ids']) && is_array($item['servizi_ids'])) {
-                        // Validate all servizio IDs are numeric
-                        $valid_ids = array();
-                        foreach($item['servizi_ids'] as $id) {
-                            if(is_numeric($id)) {
-                                $valid_ids[] = (int)$id;
-                            }
-                        }
-                        
-                        if(!empty($valid_ids)) {
-                            $clean_servizi[] = array(
-                                'day' => (int)$item['day'],
-                                'servizi_ids' => $valid_ids,
-                                'time' => sanitize_text_field($item['time'] ?? '13:00'),
-                                'note' => sanitize_text_field($item['note'] ?? '')
-                            );
-                        }
-                    }
-                }
+                $clean_servizi = self::validate_and_clean_entity_data($servizi_data, 'servizi');
                 update_post_meta($post_id, 'yht_tour_servizi', wp_json_encode($clean_servizi));
             }
         }
@@ -845,7 +782,7 @@ class YHT_Post_Types {
     }
     
     /**
-     * Calculate automatic pricing based on connected entities - updated for multiple options
+     * Calculate automatic pricing based on connected entities - enhanced for multiple options consistency
      */
     private function calculate_auto_pricing($post_id) {
         $luoghi_json = get_post_meta($post_id,'yht_tour_luoghi',true);
@@ -861,42 +798,49 @@ class YHT_Post_Types {
         $premium_cost = 0;
         $luxury_cost = 0;
         
-        // Calculate costs from luoghi (entry fees) - use average of all options
+        // Enhanced calculation from luoghi (entry fees) - properly handle multiple options
         foreach($luoghi_data as $luoghi_group) {
-            $luoghi_ids = array();
+            $luogo_ids = array();
             
-            // Handle both old and new data format
+            // Handle both old and new data format for consistency
             if(isset($luoghi_group['luoghi_ids']) && is_array($luoghi_group['luoghi_ids'])) {
-                $luoghi_ids = $luoghi_group['luoghi_ids'];
+                $luogo_ids = $luoghi_group['luoghi_ids']; // New multiple options format
             } elseif(isset($luoghi_group['luogo_id'])) {
-                $luoghi_ids = array($luoghi_group['luogo_id']);
+                $luogo_ids = array($luoghi_group['luogo_id']); // Old single format - maintain compatibility
             }
             
             $total_entry_costs = 0;
             $valid_count = 0;
             
-            foreach($luoghi_ids as $luogo_id) {
+            foreach($luogo_ids as $luogo_id) {
                 $entry_cost = (float)get_post_meta($luogo_id,'yht_cost_ingresso',true);
                 $total_entry_costs += $entry_cost;
                 $valid_count++;
             }
             
-            // Use average cost of all options
+            // Use average cost of all options for better pricing consistency
             if($valid_count > 0) {
-                $base_cost += $total_entry_costs / $valid_count;
+                $average_cost = $total_entry_costs / $valid_count;
+                $base_cost += $average_cost;
+                
+                // Add slight buffer for multiple options availability
+                if($valid_count > 1) {
+                    $multiple_options_buffer = $average_cost * 0.05; // 5% buffer for choice availability
+                    $base_cost += $multiple_options_buffer;
+                }
             }
         }
         
-        // Calculate costs from alloggi - use average of all options
+        // Enhanced calculation from alloggi - properly handle multiple options with quality tiers
         foreach($alloggi_data as $alloggi_group) {
-            $alloggi_ids = array();
+            $alloggio_ids = array();
             $nights = $alloggi_group['nights'] ?? 1;
             
-            // Handle both old and new data format  
+            // Handle both old and new data format for consistency
             if(isset($alloggi_group['alloggi_ids']) && is_array($alloggi_group['alloggi_ids'])) {
-                $alloggi_ids = $alloggi_group['alloggi_ids'];
+                $alloggio_ids = $alloggi_group['alloggi_ids']; // New multiple options format
             } elseif(isset($alloggi_group['alloggio_id'])) {
-                $alloggi_ids = array($alloggi_group['alloggio_id']);
+                $alloggio_ids = array($alloggi_group['alloggio_id']); // Old single format - maintain compatibility
             }
             
             $total_standard = 0;
@@ -904,10 +848,14 @@ class YHT_Post_Types {
             $total_luxury = 0;
             $valid_count = 0;
             
-            foreach($alloggi_ids as $alloggio_id) {
+            foreach($alloggio_ids as $alloggio_id) {
                 $standard_night = (float)get_post_meta($alloggio_id,'yht_prezzo_notte_standard',true);
                 $premium_night = (float)get_post_meta($alloggio_id,'yht_prezzo_notte_premium',true);
                 $luxury_night = (float)get_post_meta($alloggio_id,'yht_prezzo_notte_luxury',true);
+                
+                // If specific tiers not available, calculate from standard with multipliers
+                if(!$premium_night && $standard_night) $premium_night = $standard_night * 1.3;
+                if(!$luxury_night && $standard_night) $luxury_night = $standard_night * 1.7;
                 
                 $total_standard += $standard_night * $nights;
                 $total_premium += $premium_night * $nights;
@@ -915,23 +863,38 @@ class YHT_Post_Types {
                 $valid_count++;
             }
             
-            // Use average cost of all accommodation options
+            // Use average cost of all accommodation options for better pricing consistency
             if($valid_count > 0) {
-                $standard_cost += $total_standard / $valid_count;
-                $premium_cost += $total_premium / $valid_count;
-                $luxury_cost += $total_luxury / $valid_count;
+                $avg_standard = $total_standard / $valid_count;
+                $avg_premium = $total_premium / $valid_count;
+                $avg_luxury = $total_luxury / $valid_count;
+                
+                $standard_cost += $avg_standard;
+                $premium_cost += $avg_premium;
+                $luxury_cost += $avg_luxury;
+                
+                // Add multiple options premium for choice availability
+                if($valid_count > 1) {
+                    $choice_premium_standard = $avg_standard * 0.03; // 3% choice premium
+                    $choice_premium_premium = $avg_premium * 0.03;
+                    $choice_premium_luxury = $avg_luxury * 0.03;
+                    
+                    $standard_cost += $choice_premium_standard;
+                    $premium_cost += $choice_premium_premium;
+                    $luxury_cost += $choice_premium_luxury;
+                }
             }
         }
         
-        // Calculate costs from servizi - use average of all options
+        // Enhanced calculation from servizi - properly handle multiple options with service types
         foreach($servizi_data as $servizi_group) {
-            $servizi_ids = array();
+            $servizio_ids = array();
             
-            // Handle both old and new data format
+            // Handle both old and new data format for consistency
             if(isset($servizi_group['servizi_ids']) && is_array($servizi_group['servizi_ids'])) {
-                $servizi_ids = $servizi_group['servizi_ids'];
+                $servizio_ids = $servizi_group['servizi_ids']; // New multiple options format
             } elseif(isset($servizi_group['servizio_id'])) {
-                $servizi_ids = array($servizi_group['servizio_id']);
+                $servizio_ids = array($servizi_group['servizio_id']); // Old single format - maintain compatibility
             }
             
             $total_standard_service = 0;
@@ -939,42 +902,112 @@ class YHT_Post_Types {
             $total_luxury_service = 0;
             $valid_count = 0;
             
-            foreach($servizi_ids as $servizio_id) {
+            foreach($servizio_ids as $servizio_id) {
                 $prezzo_persona = (float)get_post_meta($servizio_id,'yht_prezzo_persona',true);
                 $prezzo_fisso = (float)get_post_meta($servizio_id,'yht_prezzo_fisso',true);
                 
-                // For now, use per-person pricing. In a real system, this might be more complex
+                // Enhanced service pricing with quality tiers
                 if($prezzo_persona > 0) {
                     $total_standard_service += $prezzo_persona;
-                    $total_premium_service += $prezzo_persona * 1.2; // Premium includes better service
-                    $total_luxury_service += $prezzo_persona * 1.5;  // Luxury includes premium service
+                    $total_premium_service += $prezzo_persona * 1.25; // Premium service includes better quality
+                    $total_luxury_service += $prezzo_persona * 1.6;  // Luxury includes premium service and extras
                 } elseif($prezzo_fisso > 0) {
-                    // Fixed costs divided by average group size (e.g., 2 people)
+                    // Fixed costs divided by average group size (standardized at 2 people)
                     $per_person_fixed = $prezzo_fisso / 2;
                     $total_standard_service += $per_person_fixed;
-                    $total_premium_service += $per_person_fixed;
-                    $total_luxury_service += $per_person_fixed;
+                    $total_premium_service += $per_person_fixed * 1.15; // Slight premium for better coordination
+                    $total_luxury_service += $per_person_fixed * 1.3;   // Higher tier for luxury experience
                 }
                 $valid_count++;
             }
             
-            // Use average cost of all service options
+            // Use average cost of all service options for better pricing consistency
             if($valid_count > 0) {
-                $standard_cost += $total_standard_service / $valid_count;
-                $premium_cost += $total_premium_service / $valid_count;
-                $luxury_cost += $total_luxury_service / $valid_count;
+                $avg_standard_service = $total_standard_service / $valid_count;
+                $avg_premium_service = $total_premium_service / $valid_count;
+                $avg_luxury_service = $total_luxury_service / $valid_count;
+                
+                $standard_cost += $avg_standard_service;
+                $premium_cost += $avg_premium_service;
+                $luxury_cost += $avg_luxury_service;
+                
+                // Add multiple options coordination premium
+                if($valid_count > 1) {
+                    $coordination_premium = $avg_standard_service * 0.02; // 2% coordination premium
+                    $standard_cost += $coordination_premium;
+                    $premium_cost += $coordination_premium * 1.25;
+                    $luxury_cost += $coordination_premium * 1.6;
+                }
             }
         }
         
-        // Add margin and update prices
-        $margin_standard = 1.3; // 30% margin
-        $margin_premium = 1.4;   // 40% margin  
-        $margin_luxury = 1.6;    // 60% margin
+        // Enhanced margin calculation with multiple options consideration
+        $has_multiple_options = $this->tour_has_multiple_options($luoghi_data, $alloggi_data, $servizi_data);
         
-        update_post_meta($post_id, 'yht_prezzo_base', round($base_cost, 2));
-        update_post_meta($post_id, 'yht_prezzo_standard_pax', round($standard_cost * $margin_standard, 2));
-        update_post_meta($post_id, 'yht_prezzo_premium_pax', round($premium_cost * $margin_premium, 2));
-        update_post_meta($post_id, 'yht_prezzo_luxury_pax', round($luxury_cost * $margin_luxury, 2));
+        if($has_multiple_options) {
+            // Higher margins for tours with multiple options due to increased value and complexity
+            $margin_standard = 1.35; // 35% margin (was 30%)
+            $margin_premium = 1.45;   // 45% margin (was 40%)  
+            $margin_luxury = 1.65;    // 65% margin (was 60%)
+        } else {
+            // Standard margins for single-option tours
+            $margin_standard = 1.3; // 30% margin
+            $margin_premium = 1.4;   // 40% margin  
+            $margin_luxury = 1.6;    // 60% margin
+        }
+        
+        // Calculate final prices with enhanced precision
+        $final_base = round($base_cost, 2);
+        $final_standard = round($standard_cost * $margin_standard, 2);
+        $final_premium = round($premium_cost * $margin_premium, 2);
+        $final_luxury = round($luxury_cost * $margin_luxury, 2);
+        
+        // Ensure logical price progression
+        if($final_premium <= $final_standard) {
+            $final_premium = round($final_standard * 1.3, 2);
+        }
+        if($final_luxury <= $final_premium) {
+            $final_luxury = round($final_premium * 1.3, 2);
+        }
+        
+        // Update prices with enhanced metadata
+        update_post_meta($post_id, 'yht_prezzo_base', $final_base);
+        update_post_meta($post_id, 'yht_prezzo_standard_pax', $final_standard);
+        update_post_meta($post_id, 'yht_prezzo_premium_pax', $final_premium);
+        update_post_meta($post_id, 'yht_prezzo_luxury_pax', $final_luxury);
+        
+        // Store pricing metadata for transparency
+        update_post_meta($post_id, 'yht_pricing_calculation_timestamp', current_time('timestamp'));
+        update_post_meta($post_id, 'yht_pricing_has_multiple_options', $has_multiple_options ? '1' : '0');
+        update_post_meta($post_id, 'yht_pricing_method', 'auto_calculated_enhanced');
+    }
+    
+    /**
+     * Check if tour has multiple options configured
+     */
+    private function tour_has_multiple_options($luoghi_data, $alloggi_data, $servizi_data) {
+        // Check luoghi for multiple options
+        foreach($luoghi_data as $group) {
+            if(isset($group['luoghi_ids']) && is_array($group['luoghi_ids']) && count($group['luoghi_ids']) > 1) {
+                return true;
+            }
+        }
+        
+        // Check alloggi for multiple options
+        foreach($alloggi_data as $group) {
+            if(isset($group['alloggi_ids']) && is_array($group['alloggi_ids']) && count($group['alloggi_ids']) > 1) {
+                return true;
+            }
+        }
+        
+        // Check servizi for multiple options
+        foreach($servizi_data as $group) {
+            if(isset($group['servizi_ids']) && is_array($group['servizi_ids']) && count($group['servizi_ids']) > 1) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
     /**
@@ -1161,5 +1194,111 @@ class YHT_Post_Types {
             YHT_VER,
             true
         );
+    }
+    
+    /**
+     * Enhanced validation and cleaning of entity data for multiple options consistency
+     */
+    private static function validate_and_clean_entity_data($entity_data, $entity_type) {
+        $clean_data = array();
+        $max_options_per_group = 4; // Enforce 4 maximum options per group
+        
+        foreach($entity_data as $item) {
+            // Determine the correct ID field based on entity type
+            $ids_field = $entity_type . '_ids';
+            $single_id_field = substr($entity_type, 0, -1) . '_id'; // Remove 's' and add '_id'
+            
+            if(isset($item['day']) && isset($item[$ids_field]) && is_array($item[$ids_field])) {
+                // Validate all entity IDs are numeric and entities exist
+                $valid_ids = array();
+                $post_type = 'yht_' . substr($entity_type, 0, -1); // Remove 's' from end
+                
+                foreach($item[$ids_field] as $id) {
+                    if(is_numeric($id)) {
+                        $id = (int)$id;
+                        // Verify the entity exists and is published
+                        $post = get_post($id);
+                        if($post && $post->post_type === $post_type && $post->post_status === 'publish') {
+                            $valid_ids[] = $id;
+                        }
+                    }
+                }
+                
+                // Enforce maximum options limit for consistency
+                if(count($valid_ids) > $max_options_per_group) {
+                    $valid_ids = array_slice($valid_ids, 0, $max_options_per_group);
+                }
+                
+                // Remove duplicate IDs
+                $valid_ids = array_unique($valid_ids);
+                
+                if(!empty($valid_ids)) {
+                    $clean_item = array(
+                        'day' => (int)$item['day'],
+                        $ids_field => array_values($valid_ids), // Reindex array
+                        'note' => sanitize_text_field($item['note'] ?? ''),
+                        'options_count' => count($valid_ids),
+                        'multiple_options_enabled' => count($valid_ids) > 1,
+                        'data_validation' => array(
+                            'validated_at' => current_time('timestamp'),
+                            'original_count' => count($item[$ids_field] ?? array()),
+                            'cleaned_count' => count($valid_ids),
+                            'max_allowed' => $max_options_per_group
+                        )
+                    );
+                    
+                    // Add entity-specific fields
+                    if($entity_type === 'luoghi') {
+                        $clean_item['time'] = sanitize_text_field($item['time'] ?? '10:00');
+                    } elseif($entity_type === 'alloggi') {
+                        $clean_item['nights'] = max(1, (int)($item['nights'] ?? 1));
+                    } elseif($entity_type === 'servizi') {
+                        $clean_item['time'] = sanitize_text_field($item['time'] ?? '13:00');
+                    }
+                    
+                    $clean_data[] = $clean_item;
+                }
+            }
+            // Handle backward compatibility for single entity format
+            elseif(isset($item['day']) && isset($item[$single_id_field])) {
+                $id = (int)$item[$single_id_field];
+                $post_type = 'yht_' . substr($entity_type, 0, -1);
+                $post = get_post($id);
+                
+                if($post && $post->post_type === $post_type && $post->post_status === 'publish') {
+                    // Convert single entity to multiple options format
+                    $clean_item = array(
+                        'day' => (int)$item['day'],
+                        $ids_field => array($id),
+                        'note' => sanitize_text_field($item['note'] ?? ''),
+                        'options_count' => 1,
+                        'multiple_options_enabled' => false,
+                        'data_validation' => array(
+                            'validated_at' => current_time('timestamp'),
+                            'converted_from_single' => true,
+                            'original_format' => 'single_entity'
+                        )
+                    );
+                    
+                    // Add entity-specific fields
+                    if($entity_type === 'luoghi') {
+                        $clean_item['time'] = sanitize_text_field($item['time'] ?? '10:00');
+                    } elseif($entity_type === 'alloggi') {
+                        $clean_item['nights'] = max(1, (int)($item['nights'] ?? 1));
+                    } elseif($entity_type === 'servizi') {
+                        $clean_item['time'] = sanitize_text_field($item['time'] ?? '13:00');
+                    }
+                    
+                    $clean_data[] = $clean_item;
+                }
+            }
+        }
+        
+        // Sort by day for consistency
+        usort($clean_data, function($a, $b) {
+            return $a['day'] <=> $b['day'];
+        });
+        
+        return $clean_data;
     }
 }
