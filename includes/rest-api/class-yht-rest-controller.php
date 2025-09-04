@@ -66,6 +66,13 @@ class YHT_Rest_Controller {
             'callback' => array($this, 'get_booking_stats'),
             'permission_callback' => '__return_true'
         ));
+        
+        // New endpoint for sending entity selections to clients
+        register_rest_route('yht/v1','/send_selection_to_client', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'send_selection_to_client'),
+            'permission_callback' => array($this, 'admin_permission_callback')
+        ));
     }
     
     /**
@@ -1213,5 +1220,186 @@ class YHT_Rest_Controller {
         }
         
         return $total_categories > 0 ? round($total_options / $total_categories, 1) : 0;
+    }
+    
+    /**
+     * Send selected entities to client endpoint
+     */
+    public function send_selection_to_client(WP_REST_Request $request) {
+        $params = $request->get_json_params();
+        $tour_id = (int)($params['tour_id'] ?? 0);
+        $client_email = sanitize_email($params['client_email'] ?? '');
+        $client_name = sanitize_text_field($params['client_name'] ?? '');
+        
+        if(!$tour_id || !$client_email) {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Tour ID e email cliente sono richiesti'
+            ));
+        }
+        
+        // Get tour data
+        $tour_post = get_post($tour_id);
+        if(!$tour_post || $tour_post->post_type !== 'yht_tour') {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Tour non trovato'
+            ));
+        }
+        
+        // Get selected entities
+        $selected_luoghi = json_decode(get_post_meta($tour_id, 'yht_tour_selected_luoghi', true) ?: '[]', true);
+        $selected_alloggi = json_decode(get_post_meta($tour_id, 'yht_tour_selected_alloggi', true) ?: '[]', true);
+        $selected_servizi = json_decode(get_post_meta($tour_id, 'yht_tour_selected_servizi', true) ?: '[]', true);
+        
+        if(empty($selected_luoghi) && empty($selected_alloggi) && empty($selected_servizi)) {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Nessuna entità selezionata per questo tour'
+            ));
+        }
+        
+        // Build email content
+        $email_content = $this->build_selection_email_content($tour_post, $selected_luoghi, $selected_alloggi, $selected_servizi, $client_name);
+        
+        // Send email
+        $subject = sprintf('La tua selezione tour: %s', $tour_post->post_title);
+        $headers = array('Content-Type: text/html; charset=UTF-8');
+        
+        $email_sent = wp_mail($client_email, $subject, $email_content, $headers);
+        
+        if($email_sent) {
+            // Update tour meta with sent timestamp and status
+            update_post_meta($tour_id, 'yht_last_sent_to_client', current_time('timestamp'));
+            update_post_meta($tour_id, 'yht_entities_selection_status', 'sent_to_client');
+            
+            return rest_ensure_response(array(
+                'ok' => true,
+                'message' => 'Selezione inviata con successo al cliente'
+            ));
+        } else {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Errore nell\'invio dell\'email'
+            ));
+        }
+    }
+    
+    /**
+     * Build email content for selected entities
+     */
+    private function build_selection_email_content($tour_post, $selected_luoghi, $selected_alloggi, $selected_servizi, $client_name) {
+        $tour_title = $tour_post->post_title;
+        $tour_description = $tour_post->post_content;
+        
+        $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Selezione Tour</title></head><body>';
+        $html .= '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">';
+        
+        // Header
+        $html .= '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">';
+        $html .= '<h1 style="margin: 0; font-size: 24px;">🎯 La Tua Selezione Tour</h1>';
+        $html .= '<h2 style="margin: 10px 0 0; font-size: 18px; opacity: 0.9;">' . esc_html($tour_title) . '</h2>';
+        $html .= '</div>';
+        
+        // Greeting
+        if($client_name) {
+            $html .= '<p>Caro <strong>' . esc_html($client_name) . '</strong>,</p>';
+        } else {
+            $html .= '<p>Gentile Cliente,</p>';
+        }
+        
+        $html .= '<p>Siamo lieti di condividere con te la selezione finale delle strutture e servizi per il tuo tour. Abbiamo contattato tutte le strutture per garantire la disponibilità nelle date richieste.</p>';
+        
+        // Tour description if available
+        if($tour_description) {
+            $html .= '<div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">';
+            $html .= '<h3 style="margin: 0 0 10px; color: #2d3436;">📋 Descrizione del Tour</h3>';
+            $html .= '<p style="margin: 0;">' . wp_kses_post($tour_description) . '</p>';
+            $html .= '</div>';
+        }
+        
+        // Organize by days
+        $all_days = array();
+        foreach($selected_luoghi as $item) $all_days[] = $item['day'];
+        foreach($selected_alloggi as $item) $all_days[] = $item['day'];
+        foreach($selected_servizi as $item) $all_days[] = $item['day'];
+        $all_days = array_unique($all_days);
+        sort($all_days);
+        
+        $html .= '<h3 style="color: #2d3436; border-bottom: 2px solid #00b894; padding-bottom: 8px;">🗓️ Itinerario Dettagliato</h3>';
+        
+        foreach($all_days as $day) {
+            $html .= '<div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+            $html .= '<h4 style="margin: 0 0 15px; color: #667eea; font-size: 16px;">📅 Giorno ' . $day . '</h4>';
+            
+            // Find entities for this day
+            $day_luoghi = array_filter($selected_luoghi, function($item) use ($day) { return $item['day'] == $day; });
+            $day_alloggi = array_filter($selected_alloggi, function($item) use ($day) { return $item['day'] == $day; });
+            $day_servizi = array_filter($selected_servizi, function($item) use ($day) { return $item['day'] == $day; });
+            
+            // Show luoghi
+            foreach($day_luoghi as $luogo_item) {
+                $luogo_post = get_post($luogo_item['luogo_id']);
+                if($luogo_post) {
+                    $html .= '<div style="margin: 10px 0; padding: 12px; background: #e8f4f8; border-left: 4px solid #74b9ff; border-radius: 4px;">';
+                    $html .= '<strong style="color: #0984e3;">📍 Luogo da Visitare:</strong> ' . esc_html($luogo_post->post_title);
+                    $html .= '<br><small style="color: #636e72;">Orario: ' . esc_html($luogo_item['time']) . '</small>';
+                    if($luogo_post->post_content) {
+                        $html .= '<p style="margin: 8px 0 0; font-size: 14px;">' . wp_trim_words($luogo_post->post_content, 20) . '</p>';
+                    }
+                    $html .= '</div>';
+                }
+            }
+            
+            // Show alloggi
+            foreach($day_alloggi as $alloggio_item) {
+                $alloggio_post = get_post($alloggio_item['alloggio_id']);
+                if($alloggio_post) {
+                    $html .= '<div style="margin: 10px 0; padding: 12px; background: #e8f5e8; border-left: 4px solid #00b894; border-radius: 4px;">';
+                    $html .= '<strong style="color: #00b894;">🏨 Alloggio:</strong> ' . esc_html($alloggio_post->post_title);
+                    $html .= '<br><small style="color: #636e72;">Notti: ' . esc_html($alloggio_item['nights']) . '</small>';
+                    if($alloggio_post->post_content) {
+                        $html .= '<p style="margin: 8px 0 0; font-size: 14px;">' . wp_trim_words($alloggio_post->post_content, 20) . '</p>';
+                    }
+                    $html .= '</div>';
+                }
+            }
+            
+            // Show servizi
+            foreach($day_servizi as $servizio_item) {
+                $servizio_post = get_post($servizio_item['servizio_id']);
+                if($servizio_post) {
+                    $html .= '<div style="margin: 10px 0; padding: 12px; background: #fef4e8; border-left: 4px solid #fdcb6e; border-radius: 4px;">';
+                    $html .= '<strong style="color: #e17055;">🍽️ Servizio:</strong> ' . esc_html($servizio_post->post_title);
+                    $html .= '<br><small style="color: #636e72;">Orario: ' . esc_html($servizio_item['time']) . '</small>';
+                    if($servizio_post->post_content) {
+                        $html .= '<p style="margin: 8px 0 0; font-size: 14px;">' . wp_trim_words($servizio_post->post_content, 20) . '</p>';
+                    }
+                    $html .= '</div>';
+                }
+            }
+            
+            $html .= '</div>';
+        }
+        
+        // Footer
+        $html .= '<div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 30px; text-align: center;">';
+        $html .= '<p style="margin: 0; color: #636e72;"><strong>Disponibilità Confermata</strong></p>';
+        $html .= '<p style="margin: 10px 0 0; font-size: 14px; color: #636e72;">Tutte le strutture e servizi selezionati sono stati contattati e la disponibilità è stata confermata per le date richieste.</p>';
+        $html .= '</div>';
+        
+        $html .= '<p style="margin-top: 20px;">Per ulteriori informazioni o modifiche, non esitare a contattarci.</p>';
+        $html .= '<p>Cordiali saluti,<br><strong>Il Team di Your Hidden Trip</strong></p>';
+        
+        $html .= '</div></body></html>';
+        
+        return $html;
+    }
+    
+    /**
+     * Admin permission callback
+     */
+    public function admin_permission_callback() {
+        return current_user_can('edit_posts');
     }
 }

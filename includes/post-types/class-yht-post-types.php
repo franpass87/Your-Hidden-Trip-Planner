@@ -970,9 +970,42 @@ class YHT_Post_Types {
         jQuery(document).ready(function($) {
             // Handle send to client button
             $('#yht-send-selection-to-client').click(function() {
-                if(confirm('Sei sicuro di voler inviare la selezione finale al cliente? Questa azione invierà una email con le entità selezionate.')) {
-                    // Add logic here to send email notification
-                    alert('Funzionalità di invio email da implementare');
+                var clientEmail = prompt('Inserisci l\'email del cliente:');
+                if(!clientEmail) return;
+                
+                var clientName = prompt('Inserisci il nome del cliente (opzionale):') || '';
+                
+                if(confirm('Sei sicuro di voler inviare la selezione finale al cliente ' + clientEmail + '?')) {
+                    var button = $(this);
+                    button.prop('disabled', true).text('Invio in corso...');
+                    
+                    $.ajax({
+                        url: '<?php echo rest_url('yht/v1/send_selection_to_client'); ?>',
+                        method: 'POST',
+                        beforeSend: function(xhr) {
+                            xhr.setRequestHeader('X-WP-Nonce', '<?php echo wp_create_nonce('wp_rest'); ?>');
+                        },
+                        data: JSON.stringify({
+                            tour_id: <?php echo $post->ID; ?>,
+                            client_email: clientEmail,
+                            client_name: clientName
+                        }),
+                        contentType: 'application/json',
+                        success: function(response) {
+                            if(response.ok) {
+                                alert('✅ ' + response.message);
+                                // Update status and reload page
+                                location.reload();
+                            } else {
+                                alert('❌ ' + response.message);
+                                button.prop('disabled', false).text('📧 Invia Selezione al Cliente');
+                            }
+                        },
+                        error: function() {
+                            alert('❌ Errore di connessione');
+                            button.prop('disabled', false).text('📧 Invia Selezione al Cliente');
+                        }
+                    });
                 }
             });
             
