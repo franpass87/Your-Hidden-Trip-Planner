@@ -121,9 +121,12 @@ class YHT_Rest_Controller {
         // If no custom tours found or we want to provide variety, add generated tours as fallbacks
         if(empty($tours) || count($tours) < 3) {
             $fallback_tours = array(
-                YHT_Helpers::plan_itinerary('Tour Essenziale', $pool, $days, $per_day, array('trekking'=>1,'passeggiata'=>1,'cultura'=>1,'benessere'=>0.6,'enogastronomia'=>0.8), $accommodations, $services),
-                YHT_Helpers::plan_itinerary('Natura & Borghi', $pool, $days, $per_day, array('trekking'=>1.2,'passeggiata'=>1,'cultura'=>0.6,'benessere'=>0.5,'enogastronomia'=>0.8), $accommodations, $services),
-                YHT_Helpers::plan_itinerary('Arte & Sapori', $pool, $days, $per_day, array('trekking'=>0.5,'passeggiata'=>0.9,'cultura'=>1.3,'benessere'=>0.7,'enogastronomia'=>1.1), $accommodations, $services)
+                // Balanced tour for first-time visitors
+                YHT_Helpers::plan_itinerary('Tour Classico', $pool, $days, $per_day, array('trekking'=>1.0,'passeggiata'=>1.1,'cultura'=>1.2,'benessere'=>0.7,'enogastronomia'=>0.9), $accommodations, $services),
+                // Nature and outdoor focused tour  
+                YHT_Helpers::plan_itinerary('Natura & Avventura', $pool, $days, $per_day, array('trekking'=>1.4,'passeggiata'=>1.2,'cultura'=>0.7,'benessere'=>0.8,'enogastronomia'=>0.9), $accommodations, $services),
+                // Cultural and culinary focused tour
+                YHT_Helpers::plan_itinerary('Cultura & Tradizioni', $pool, $days, $per_day, array('trekking'=>0.6,'passeggiata'=>0.9,'cultura'=>1.5,'benessere'=>0.8,'enogastronomia'=>1.3), $accommodations, $services)
             );
             
             // Add fallback tours to fill up to 3 total tours
@@ -419,31 +422,60 @@ class YHT_Rest_Controller {
         $total = 0;
         $breakdown = array();
         
-        // Base tour price multiplier by package type
-        $multipliers = array(
-            'standard' => 1.0,
-            'premium' => 1.3,
-            'luxury' => 1.7
-        );
-        $multiplier = $multipliers[$package_type] ?? 1.0;
-        
-        // Calculate accommodation costs
-        if(!empty($tour['accommodations'])) {
-            $accommodation_cost = 0;
-            foreach($tour['accommodations'] as $acc) {
-                $price_field = "yht_prezzo_notte_$package_type";
-                $price_per_night = (float)get_post_meta($acc['id'], $price_field, true);
-                if(!$price_per_night) {
-                    $price_per_night = (float)get_post_meta($acc['id'], 'yht_prezzo_notte_standard', true);
+        // Check if this is a custom tour with direct pricing
+        if(isset($tour['type']) && $tour['type'] === 'custom' && isset($tour['pricing'])) {
+            $base_price = $tour['pricing'][$package_type] ?? $tour['pricing']['standard'] ?? 0;
+            $total = $base_price * $num_pax;
+            $breakdown['base_tour'] = $total;
+            
+            // Add accommodation costs if available
+            if(!empty($tour['accommodations'])) {
+                $accommodation_cost = 0;
+                foreach($tour['accommodations'] as $acc) {
+                    $price_field = "yht_prezzo_notte_$package_type";
+                    $price_per_night = (float)get_post_meta($acc['id'], $price_field, true);
+                    if(!$price_per_night) {
+                        $price_per_night = (float)get_post_meta($acc['id'], 'yht_prezzo_notte_standard', true) * ($package_type === 'premium' ? 1.3 : ($package_type === 'luxury' ? 1.7 : 1.0));
+                    }
+                    $accommodation_cost += $price_per_night * (count($tour['giorni'] ?? $tour['days']) ?? 1);
                 }
-                $accommodation_cost += $price_per_night * ($tour['days'] ?? 1);
+                $total += $accommodation_cost;
+                $breakdown['accommodation'] = $accommodation_cost;
             }
-            $total += $accommodation_cost * $num_pax;
-            $breakdown['accommodation'] = $accommodation_cost * $num_pax;
+        } else {
+            // Handle generated tours with multiplier-based pricing
+            $multipliers = array(
+                'standard' => 1.0,
+                'premium' => 1.3,
+                'luxury' => 1.7
+            );
+            $multiplier = $multipliers[$package_type] ?? 1.0;
+            
+            // Calculate accommodation costs
+            if(!empty($tour['accommodations'])) {
+                $accommodation_cost = 0;
+                foreach($tour['accommodations'] as $acc) {
+                    $price_field = "yht_prezzo_notte_$package_type";
+                    $price_per_night = (float)get_post_meta($acc['id'], $price_field, true);
+                    if(!$price_per_night) {
+                        $price_per_night = (float)get_post_meta($acc['id'], 'yht_prezzo_notte_standard', true);
+                    }
+                    $accommodation_cost += $price_per_night * ($tour['days'] ?? 1);
+                }
+                $total += $accommodation_cost * $num_pax;
+                $breakdown['accommodation'] = $accommodation_cost * $num_pax;
+            }
         }
         
-        // Calculate activities/places costs
-        if(!empty($tour['days'])) {
+        // Calculate activities/places costs (for generated tours only)
+        if(!empty($tour['days']) && (!isset($tour['type']) || $tour['type'] !== 'custom')) {
+            $multipliers = array(
+                'standard' => 1.0,
+                'premium' => 1.3,
+                'luxury' => 1.7
+            );
+            $multiplier = $multipliers[$package_type] ?? 1.0;
+            
             $activities_cost = 0;
             foreach($tour['days'] as $day) {
                 if(!empty($day['stops'])) {
@@ -457,8 +489,15 @@ class YHT_Rest_Controller {
             $breakdown['activities'] = $activities_cost * $num_pax;
         }
         
-        // Calculate meals (restaurants/services)
-        if(!empty($tour['services'])) {
+        // Calculate meals (restaurants/services) - for generated tours only
+        if(!empty($tour['services']) && (!isset($tour['type']) || $tour['type'] !== 'custom')) {
+            $multipliers = array(
+                'standard' => 1.0,
+                'premium' => 1.3,
+                'luxury' => 1.7
+            );
+            $multiplier = $multipliers[$package_type] ?? 1.0;
+            
             $meals_cost = 0;
             foreach($tour['services'] as $service) {
                 if(in_array('ristorante', $service['service_type'] ?? array())) {
@@ -471,10 +510,19 @@ class YHT_Rest_Controller {
             $breakdown['meals'] = $meals_cost * $num_pax;
         }
         
-        // Transport costs (basic inclusion)
-        $transport_cost = 50 * $multiplier; // Base transport cost per person
-        $total += $transport_cost * $num_pax;
-        $breakdown['transport'] = $transport_cost * $num_pax;
+        // Transport costs (basic inclusion) - for generated tours only
+        if(!isset($tour['type']) || $tour['type'] !== 'custom') {
+            $multipliers = array(
+                'standard' => 1.0,
+                'premium' => 1.3,
+                'luxury' => 1.7
+            );
+            $multiplier = $multipliers[$package_type] ?? 1.0;
+            
+            $transport_cost = 50 * $multiplier; // Base transport cost per person
+            $total += $transport_cost * $num_pax;
+            $breakdown['transport'] = $transport_cost * $num_pax;
+        }
         
         // Service fees and markup
         $service_fee = $total * 0.1; // 10% service fee
