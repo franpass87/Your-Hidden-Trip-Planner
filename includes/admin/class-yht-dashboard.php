@@ -429,9 +429,29 @@ class YHT_Dashboard {
      * Get performance statistics
      */
     private function get_performance_stats() {
+        // Try to get real performance data from system health
+        $health_history = get_option('yht_health_history', array());
+        $performance_history = get_option('yht_performance_history', array());
+        
+        $health_score = 95; // Default
+        $avg_load_time = 500; // Default
+        
+        // Get latest health score if available
+        if (!empty($health_history)) {
+            $latest_health = end($health_history);
+            $health_score = $latest_health['score'];
+        }
+        
+        // Get average load time from performance history
+        if (!empty($performance_history)) {
+            $recent_performance = array_slice($performance_history, -5); // Last 5 tests
+            $total_time = array_sum(array_column($recent_performance, 'total_time'));
+            $avg_load_time = round($total_time / count($recent_performance));
+        }
+        
         return array(
-            'health_score' => 95, // Could be calculated based on various factors
-            'avg_load_time' => rand(200, 800) // Could be from real analytics
+            'health_score' => $health_score,
+            'avg_load_time' => $avg_load_time
         );
     }
     

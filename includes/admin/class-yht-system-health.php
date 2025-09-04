@@ -28,6 +28,11 @@ class YHT_System_Health {
         }
         
         add_action('yht_daily_health_check', array($this, 'daily_health_check'));
+        
+        // Log system events
+        add_action('activated_plugin', array($this, 'log_plugin_activation'));
+        add_action('deactivated_plugin', array($this, 'log_plugin_deactivation'));
+        add_action('wp_login', array($this, 'log_user_login'));
     }
     
     /**
@@ -457,6 +462,61 @@ class YHT_System_Health {
         .log-timestamp {
             color: #a0a0a0;
             margin-right: 10px;
+        }
+        
+        .performance-results {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .performance-results h4 {
+            margin: 0 0 15px 0;
+            color: #2271b1;
+            font-size: 18px;
+        }
+        
+        .perf-metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .perf-metric:last-child {
+            border-bottom: none;
+        }
+        
+        .perf-metric strong {
+            color: #135e96;
+        }
+        
+        .maintenance-action {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            transition: box-shadow 0.2s ease;
+        }
+        
+        .maintenance-action:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .yht-loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #646970;
+            font-style: italic;
+        }
+        
+        .yht-loading:before {
+            content: "⏳ ";
+            margin-right: 8px;
         }
         
         @media (max-width: 782px) {
@@ -1189,7 +1249,11 @@ class YHT_System_Health {
         
         if (!empty($critical_issues)) {
             $this->send_health_alert($critical_issues);
+            $this->log_system_event('Problemi critici rilevati: ' . count($critical_issues), 'critical');
         }
+        
+        // Log health check completion
+        $this->log_system_event("Health check completato. Score: {$health_data['overall_score']}%, Problemi: " . count($health_data['issues']), 'info');
     }
     
     /**
@@ -1663,5 +1727,50 @@ class YHT_System_Health {
         
         // Return a realistic load time estimate
         return round($load_time * 20, 2); // Multiply by factor to simulate full page load
+    }
+    
+    /**
+     * Log system events for monitoring
+     */
+    private function log_system_event($message, $level = 'info') {
+        $logs = get_option('yht_system_logs', array());
+        
+        $logs[] = array(
+            'timestamp' => current_time('Y-m-d H:i:s'),
+            'level' => $level,
+            'message' => $message
+        );
+        
+        // Keep only last 100 log entries
+        $logs = array_slice($logs, -100);
+        
+        update_option('yht_system_logs', $logs);
+    }
+    
+    /**
+     * Log plugin activation
+     */
+    public function log_plugin_activation($plugin) {
+        $plugin_data = get_plugin_data(WP_PLUGIN_DIR . '/' . $plugin);
+        $plugin_name = $plugin_data['Name'] ?? $plugin;
+        $this->log_system_event("Plugin attivato: {$plugin_name}", 'info');
+    }
+    
+    /**
+     * Log plugin deactivation
+     */
+    public function log_plugin_deactivation($plugin) {
+        $plugin_data = get_plugin_data(WP_PLUGIN_DIR . '/' . $plugin);
+        $plugin_name = $plugin_data['Name'] ?? $plugin;
+        $this->log_system_event("Plugin disattivato: {$plugin_name}", 'warning');
+    }
+    
+    /**
+     * Log user login
+     */
+    public function log_user_login($user_login) {
+        if (current_user_can('manage_options')) {
+            $this->log_system_event("Login amministratore: {$user_login}", 'info');
+        }
     }
 }
