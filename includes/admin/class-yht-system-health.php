@@ -21,6 +21,8 @@ class YHT_System_Health {
         add_action('wp_ajax_yht_security_scan', array($this, 'ajax_security_scan'));
         add_action('wp_ajax_yht_get_system_logs', array($this, 'ajax_get_system_logs'));
         add_action('wp_ajax_yht_clear_logs', array($this, 'ajax_clear_logs'));
+        add_action('wp_ajax_yht_auto_fix_issues', array($this, 'ajax_auto_fix_issues'));
+        add_action('wp_ajax_yht_export_health_report', array($this, 'ajax_export_health_report'));
         
         // Schedule health checks
         if (!wp_next_scheduled('yht_daily_health_check')) {
@@ -130,6 +132,16 @@ class YHT_System_Health {
                     <div class="yht-tab-content">
                         <!-- Issues Tab -->
                         <div id="tab-issues" class="yht-tab-panel active">
+                            <div class="issues-header">
+                                <div class="issues-actions">
+                                    <button type="button" id="auto-fix-issues" class="button button-secondary">
+                                        🔧 Correzione Automatica
+                                    </button>
+                                    <button type="button" id="export-health-report" class="button button-secondary">
+                                        📄 Esporta Report
+                                    </button>
+                                </div>
+                            </div>
                             <div id="system-issues">
                                 <div class="yht-loading">Controllo problemi in corso...</div>
                             </div>
@@ -190,6 +202,13 @@ class YHT_System_Health {
                                 <div id="system-logs" class="logs-container">
                                     <div class="yht-loading">Caricamento log...</div>
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Performance Results Tab (Dynamic) -->
+                        <div id="tab-performance-results" class="yht-tab-panel">
+                            <div id="performance-results-content">
+                                <div class="yht-loading">Nessun test performance eseguito</div>
                             </div>
                         </div>
                     </div>
@@ -519,6 +538,67 @@ class YHT_System_Health {
             margin-right: 8px;
         }
         
+        .issues-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .issues-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .issue-fixable {
+            position: relative;
+        }
+        
+        .issue-fixable::after {
+            content: "🔧";
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 16px;
+            opacity: 0.7;
+        }
+        
+        .issue-fix-hint {
+            font-size: 12px;
+            color: #00a32a;
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        .performance-recommendations {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .performance-recommendations h5 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .perf-recommendation {
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            background: #fcf9e8;
+            border-left: 3px solid #dba617;
+        }
+        
+        .perf-recommendation.perf-good {
+            background: #f0f9ff;
+            border-left-color: #00a32a;
+            color: #00a32a;
+        }
+        
         @media (max-width: 782px) {
             .yht-health-score {
                 flex-direction: column;
@@ -683,6 +763,69 @@ class YHT_System_Health {
                 }
             });
             
+            $('#auto-fix-issues').on('click', function() {
+                if (confirm('Eseguire la correzione automatica dei problemi rilevati? Questa operazione potrebbe modificare le impostazioni del sistema.')) {
+                    $(this).prop('disabled', true).text('🔧 Correzione in corso...');
+                    
+                    $.post(ajaxurl, {
+                        action: 'yht_auto_fix_issues',
+                        nonce: '<?php echo wp_create_nonce('yht_system_nonce'); ?>'
+                    }, function(response) {
+                        $('#auto-fix-issues').prop('disabled', false).text('🔧 Correzione Automatica');
+                        
+                        if (response.success) {
+                            const results = response.data;
+                            let message = 'Correzione automatica completata!\n\n';
+                            message += 'Problemi corretti: ' + results.fixed_count + '\n';
+                            message += 'Problemi che richiedono intervento manuale: ' + results.manual_count + '\n\n';
+                            if (results.actions.length > 0) {
+                                message += 'Azioni eseguite:\n' + results.actions.join('\n');
+                            }
+                            alert(message);
+                            
+                            // Refresh health check to see improvements
+                            runHealthCheck();
+                        } else {
+                            alert('Errore durante la correzione automatica: ' + (response.data.message || 'Errore sconosciuto'));
+                        }
+                    }).fail(function() {
+                        $('#auto-fix-issues').prop('disabled', false).text('🔧 Correzione Automatica');
+                        alert('Errore di connessione durante la correzione automatica');
+                    });
+                }
+            });
+            
+            $('#export-health-report').on('click', function() {
+                $(this).prop('disabled', true).text('📄 Generazione...');
+                
+                $.post(ajaxurl, {
+                    action: 'yht_export_health_report',
+                    nonce: '<?php echo wp_create_nonce('yht_system_nonce'); ?>'
+                }, function(response) {
+                    $('#export-health-report').prop('disabled', false).text('📄 Esporta Report');
+                    
+                    if (response.success) {
+                        // Create and trigger download
+                        const blob = new Blob([response.data.content], { type: 'application/json' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = response.data.filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        alert('Report esportato con successo!');
+                    } else {
+                        alert('Errore durante l\'esportazione del report');
+                    }
+                }).fail(function() {
+                    $('#export-health-report').prop('disabled', false).text('📄 Esporta Report');
+                    alert('Errore di connessione durante l\'esportazione del report');
+                });
+            });
+            
             function runHealthCheck() {
                 $('#run-health-check').prop('disabled', true).text('🔍 Controllo in corso...');
                 updateTabContent('issues', '<div class="yht-loading">Controllo problemi in corso...</div>');
@@ -729,18 +872,41 @@ class YHT_System_Health {
                 resultsHtml += '<div class="perf-metric">🗄️ Database: <strong>' + data.database_performance + '</strong> (' + data.database_time + 'ms)</div>';
                 resultsHtml += '<div class="perf-metric">📁 File System: <strong>' + data.filesystem_performance + '</strong> (' + data.filesystem_time + 'ms)</div>';
                 resultsHtml += '<div class="perf-metric">💾 Memoria: <strong>' + data.memory_performance + '</strong> (' + data.memory_time + 'ms)</div>';
-                resultsHtml += '</div>';
                 
-                // Show results in the performance tab
-                updateTabContent('performance-results', resultsHtml);
+                // Add performance recommendations
+                resultsHtml += '<div class="performance-recommendations">';
+                resultsHtml += '<h5>💡 Raccomandazioni Performance</h5>';
+                if (data.total_time > 100) {
+                    resultsHtml += '<div class="perf-recommendation">⚠️ Tempo di esecuzione elevato. Considera l\'ottimizzazione del database.</div>';
+                }
+                if (data.database_time > 50) {
+                    resultsHtml += '<div class="perf-recommendation">🗄️ Query database lente. Controlla gli indici delle tabelle.</div>';
+                }
+                if (data.filesystem_time > 20) {
+                    resultsHtml += '<div class="perf-recommendation">📁 File system lento. Verifica lo spazio disco disponibile.</div>';
+                }
+                if (data.memory_time > 10) {
+                    resultsHtml += '<div class="perf-recommendation">💾 Gestione memoria inefficiente. Controlla i plugin attivi.</div>';
+                }
+                if (data.total_time <= 100) {
+                    resultsHtml += '<div class="perf-recommendation perf-good">✅ Performance eccellenti! Il sistema funziona ottimamente.</div>';
+                }
+                resultsHtml += '</div>';
+                resultsHtml += '</div>';
                 
                 // Add performance results tab if it doesn't exist
                 if ($('.yht-tab-button[data-tab="performance-results"]').length === 0) {
-                    $('.yht-tab-nav').append('<button class="yht-tab-button" data-tab="performance-results">📊 Risultati Performance</button>');
-                    $('.yht-tab-content').append('<div id="tab-performance-results" class="yht-tab-panel"><div id="performance-results-content"></div></div>');
+                    $('.yht-tab-nav').append('<button class="yht-tab-button" data-tab="performance-results">📊 Performance</button>');
                 }
                 
-                updateTabContent('performance-results', resultsHtml);
+                // Update tab content
+                $('#tab-performance-results #performance-results-content').html(resultsHtml);
+                
+                // Auto-switch to performance tab to show results
+                $('.yht-tab-button').removeClass('active');
+                $('.yht-tab-panel').removeClass('active');
+                $('.yht-tab-button[data-tab="performance-results"]').addClass('active');
+                $('#tab-performance-results').addClass('active');
             }
             
             function updateHealthStatus(data) {
@@ -795,11 +961,15 @@ class YHT_System_Health {
                 
                 if (issues.length > 0) {
                     issues.forEach(function(issue) {
-                        html += '<div class="issue-item issue-' + issue.severity + '">';
+                        const fixableClass = issue.fixable ? ' issue-fixable' : '';
+                        html += '<div class="issue-item issue-' + issue.severity + fixableClass + '">';
                         html += '<div class="issue-icon">' + getIssueIcon(issue.severity) + '</div>';
                         html += '<div class="issue-content">';
                         html += '<div class="issue-title">' + issue.title + '</div>';
                         html += '<div class="issue-description">' + issue.description + '</div>';
+                        if (issue.fixable) {
+                            html += '<div class="issue-fix-hint">💡 Questo problema può essere corretto automaticamente</div>';
+                        }
                         html += '</div>';
                         html += '</div>';
                     });
@@ -984,7 +1154,8 @@ class YHT_System_Health {
             $issues[] = array(
                 'severity' => 'warning',
                 'title' => 'Aggiornamento WordPress disponibile',
-                'description' => "È disponibile la versione {$latest_wp}. Versione corrente: {$wp_version}"
+                'description' => "È disponibile la versione {$latest_wp}. Versione corrente: {$wp_version}",
+                'fixable' => false // Requires manual update
             );
             $score -= 10;
         }
@@ -995,7 +1166,8 @@ class YHT_System_Health {
             $issues[] = array(
                 'severity' => 'warning',
                 'title' => 'Debug mode attivo in produzione',
-                'description' => 'Il debug mode dovrebbe essere disattivato sui siti live'
+                'description' => 'Il debug mode dovrebbe essere disattivato sui siti live',
+                'fixable' => false // Requires wp-config.php edit
             );
             $score -= 15;
         }
@@ -1040,7 +1212,8 @@ class YHT_System_Health {
             $issues[] = array(
                 'severity' => 'warning',
                 'title' => 'Aggiornamenti plugin disponibili',
-                'description' => "{$updates_available} plugin hanno aggiornamenti disponibili"
+                'description' => "{$updates_available} plugin hanno aggiornamenti disponibili",
+                'fixable' => false // Requires manual update
             );
             $score -= 5;
         }
@@ -1083,7 +1256,8 @@ class YHT_System_Health {
         if ($tables_need_optimization > 0) {
             $recommendations[] = array(
                 'title' => 'Tabelle database non ottimizzate',
-                'description' => "{$tables_need_optimization} tabelle potrebbero beneficiare dell'ottimizzazione"
+                'description' => "{$tables_need_optimization} tabelle potrebbero beneficiare dell'ottimizzazione",
+                'fixable' => true // Can be auto-fixed with database cleanup
             );
             $score -= 5;
         }
@@ -1119,7 +1293,8 @@ class YHT_System_Health {
             $issues[] = array(
                 'severity' => 'warning',
                 'title' => 'Uso memoria elevato',
-                'description' => "Memoria utilizzata: {$memory_percentage}%. Considera di aumentare il memory_limit."
+                'description' => "Memoria utilizzata: {$memory_percentage}%. Considera di aumentare il memory_limit.",
+                'fixable' => false // Requires PHP configuration change
             );
             $score -= 15;
         }
@@ -1131,14 +1306,16 @@ class YHT_System_Health {
             $issues[] = array(
                 'severity' => 'warning',
                 'title' => 'Tempo di caricamento lento',
-                'description' => "Il tempo medio di caricamento è di {$avg_load_time}ms. Dovrebbe essere sotto i 800ms."
+                'description' => "Il tempo medio di caricamento è di {$avg_load_time}ms. Dovrebbe essere sotto i 800ms.",
+                'fixable' => true // Can be improved with cache and optimization
             );
             $score -= 15;
         } elseif ($avg_load_time > 2000) {
             $issues[] = array(
                 'severity' => 'critical',
                 'title' => 'Tempo di caricamento critico',
-                'description' => "Il tempo medio di caricamento è di {$avg_load_time}ms. Performance critiche."
+                'description' => "Il tempo medio di caricamento è di {$avg_load_time}ms. Performance critiche.",
+                'fixable' => true // Can be improved with cache and optimization
             );
             $score -= 30;
         }
@@ -1148,7 +1325,8 @@ class YHT_System_Health {
         if (!$cache_enabled) {
             $recommendations[] = array(
                 'title' => 'Cache non attiva',
-                'description' => 'Attivare un sistema di cache può migliorare significativamente le performance'
+                'description' => 'Attivare un sistema di cache può migliorare significativamente le performance',
+                'fixable' => false // Requires plugin installation
             );
             $score -= 20;
         }
@@ -1158,7 +1336,8 @@ class YHT_System_Health {
         if (version_compare($php_version, '8.0', '<')) {
             $recommendations[] = array(
                 'title' => 'Aggiorna PHP',
-                'description' => "PHP {$php_version} in uso. Aggiornare a PHP 8.0+ per migliori performance."
+                'description' => "PHP {$php_version} in uso. Aggiornare a PHP 8.0+ per migliori performance.",
+                'fixable' => false // Requires server configuration
             );
             $score -= 10;
         }
@@ -1772,5 +1951,183 @@ class YHT_System_Health {
         if (current_user_can('manage_options')) {
             $this->log_system_event("Login amministratore: {$user_login}", 'info');
         }
+    }
+    
+    /**
+     * AJAX: Auto-fix common issues
+     */
+    public function ajax_auto_fix_issues() {
+        check_ajax_referer('yht_system_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+        
+        $results = $this->auto_fix_issues();
+        wp_send_json_success($results);
+    }
+    
+    /**
+     * AJAX: Export health report
+     */
+    public function ajax_export_health_report() {
+        check_ajax_referer('yht_system_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die('Unauthorized');
+        }
+        
+        $report = $this->generate_health_report();
+        wp_send_json_success($report);
+    }
+    
+    /**
+     * Automatically fix common issues
+     */
+    private function auto_fix_issues() {
+        $fixed_count = 0;
+        $manual_count = 0;
+        $actions = array();
+        
+        // Run a health check to get current issues
+        $health_data = $this->run_health_check();
+        $issues = $health_data['issues'];
+        
+        foreach ($issues as $issue) {
+            $fixed = false;
+            
+            // Try to auto-fix based on issue type
+            if (strpos($issue['title'], 'transient') !== false || strpos($issue['title'], 'cache') !== false) {
+                // Auto-fix: Clear expired transients and cache
+                $this->clear_all_caches();
+                delete_expired_transients();
+                $actions[] = "Cache e transient puliti";
+                $fixed = true;
+            } elseif (strpos($issue['title'], 'Database') !== false && strpos($issue['description'], 'ottimizzazione') !== false) {
+                // Auto-fix: Optimize database tables
+                $this->cleanup_database();
+                $actions[] = "Tabelle database ottimizzate";
+                $fixed = true;
+            } elseif (strpos($issue['title'], 'debug mode') !== false) {
+                // Auto-fix: Suggest disabling debug (can't actually change wp-config.php)
+                $actions[] = "Suggerito disattivare WP_DEBUG in wp-config.php";
+                $manual_count++;
+                continue;
+            } elseif (strpos($issue['description'], 'aggiornamenti') !== false) {
+                // Auto-fix: Can't auto-update, but clear update cache
+                delete_site_transient('update_core');
+                delete_site_transient('update_plugins');
+                delete_site_transient('update_themes');
+                wp_clean_update_cache();
+                $actions[] = "Cache aggiornamenti pulito (aggiornamenti manuali necessari)";
+                $manual_count++;
+                continue;
+            }
+            
+            if ($fixed) {
+                $fixed_count++;
+            } else {
+                $manual_count++;
+            }
+        }
+        
+        // Log the auto-fix action
+        $this->log_system_event("Auto-fix eseguito: {$fixed_count} problemi corretti, {$manual_count} richiedono intervento manuale", 'info');
+        
+        return array(
+            'fixed_count' => $fixed_count,
+            'manual_count' => $manual_count,
+            'actions' => $actions
+        );
+    }
+    
+    /**
+     * Generate comprehensive health report
+     */
+    private function generate_health_report() {
+        $health_data = $this->run_health_check();
+        $performance_data = $this->run_performance_test();
+        $system_logs = $this->get_system_logs();
+        
+        // Get historical data
+        $health_history = get_option('yht_health_history', array());
+        $performance_history = get_option('yht_performance_history', array());
+        
+        $report = array(
+            'generated_at' => current_time('Y-m-d H:i:s'),
+            'site_url' => get_site_url(),
+            'wordpress_version' => get_bloginfo('version'),
+            'php_version' => PHP_VERSION,
+            'plugin_version' => defined('YHT_VERSION') ? YHT_VERSION : '1.0',
+            'overall_health' => array(
+                'score' => $health_data['overall_score'],
+                'status' => $health_data['overall_score'] >= 90 ? 'excellent' : ($health_data['overall_score'] >= 70 ? 'good' : 'needs_attention')
+            ),
+            'system_components' => array(
+                'wordpress' => $health_data['wordpress'],
+                'plugins' => $health_data['plugins'],
+                'database' => $health_data['database'],
+                'performance' => $health_data['performance']
+            ),
+            'current_issues' => $health_data['issues'],
+            'recommendations' => $health_data['recommendations'],
+            'performance_metrics' => $performance_data,
+            'recent_logs' => array_slice($system_logs, 0, 20),
+            'trends' => array(
+                'health_trend' => $this->calculate_health_trend($health_history),
+                'performance_trend' => $this->calculate_performance_trend($performance_history)
+            )
+        );
+        
+        $filename = 'yht-health-report-' . date('Y-m-d-H-i-s') . '.json';
+        $content = json_encode($report, JSON_PRETTY_PRINT);
+        
+        return array(
+            'filename' => $filename,
+            'content' => $content,
+            'size' => strlen($content)
+        );
+    }
+    
+    /**
+     * Calculate health trend from history
+     */
+    private function calculate_health_trend($history) {
+        if (count($history) < 2) {
+            return 'stable';
+        }
+        
+        $recent = array_slice($history, -7); // Last 7 entries
+        $scores = array_column($recent, 'score');
+        
+        $first_score = reset($scores);
+        $last_score = end($scores);
+        
+        $change = $last_score - $first_score;
+        
+        if ($change > 5) return 'improving';
+        if ($change < -5) return 'declining';
+        return 'stable';
+    }
+    
+    /**
+     * Calculate performance trend from history
+     */
+    private function calculate_performance_trend($history) {
+        if (count($history) < 2) {
+            return 'stable';
+        }
+        
+        $recent = array_slice($history, -7); // Last 7 entries
+        $times = array_column($recent, 'total_time');
+        
+        $first_time = reset($times);
+        $last_time = end($times);
+        
+        $change_percent = (($last_time - $first_time) / $first_time) * 100;
+        
+        if ($change_percent < -10) return 'improving';
+        if ($change_percent > 10) return 'declining';
+        return 'stable';
     }
 }
