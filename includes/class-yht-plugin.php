@@ -191,6 +191,12 @@ class YHT_Plugin {
             new YHT_API_Manager();
             new YHT_Backup_Restore();
             new YHT_User_Roles();
+            
+            // Load enhanced analytics dashboard
+            new YHT_Advanced_Analytics();
+            
+            // Load QR code manager
+            new YHT_QR_Manager();
         }
     }
     
@@ -209,12 +215,18 @@ class YHT_Plugin {
             new YHT_Shortcode();
             new YHT_Reviews();
         }
+        
+        // Load client portal (works both admin and frontend)
+        new YHT_Client_Portal();
     }
     
     /**
      * Load utility classes
      */
     private function load_utilities() {
+        // Load availability tracker
+        new YHT_Availability_Tracker();
+        
         // Utility classes are loaded on demand via autoloader
     }
     

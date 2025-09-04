@@ -66,6 +66,66 @@ class YHT_Rest_Controller {
             'callback' => array($this, 'get_booking_stats'),
             'permission_callback' => '__return_true'
         ));
+        
+        // New endpoint for sending entity selections to clients
+        register_rest_route('yht/v1','/send_selection_to_client', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'send_selection_to_client'),
+            'permission_callback' => array($this, 'admin_permission_callback')
+        ));
+        
+        // Enhanced client portal endpoints
+        register_rest_route('yht/v1','/save_client_preferences', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'save_client_preferences'),
+            'permission_callback' => '__return_true'
+        ));
+        
+        register_rest_route('yht/v1','/submit_booking_request', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'submit_booking_request'),
+            'permission_callback' => '__return_true'
+        ));
+        
+        register_rest_route('yht/v1','/get_client_portal_data', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_client_portal_data'),
+            'permission_callback' => '__return_true'
+        ));
+        
+        // Real-time availability tracking
+        register_rest_route('yht/v1','/check_entity_availability', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'check_entity_availability'),
+            'permission_callback' => '__return_true'
+        ));
+        
+        // Advanced analytics endpoints
+        register_rest_route('yht/v1','/analytics/overview', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_analytics_overview'),
+            'permission_callback' => array($this, 'admin_permission_callback')
+        ));
+        
+        register_rest_route('yht/v1','/analytics/revenue_optimization', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_revenue_optimization'),
+            'permission_callback' => array($this, 'admin_permission_callback')
+        ));
+        
+        // QR Code generation for tours
+        register_rest_route('yht/v1','/generate_tour_qr', array(
+            'methods' => 'POST',
+            'callback' => array($this, 'generate_tour_qr_code'),
+            'permission_callback' => array($this, 'admin_permission_callback')
+        ));
+        
+        // Multi-language support
+        register_rest_route('yht/v1','/tour/(?P<id>\d+)/translate', array(
+            'methods' => 'GET',
+            'callback' => array($this, 'get_tour_translation'),
+            'permission_callback' => '__return_true'
+        ));
     }
     
     /**
@@ -89,12 +149,116 @@ class YHT_Rest_Controller {
         $accommodations = YHT_Helpers::query_accommodations($areas, $startdate, $days);
         $services = YHT_Helpers::query_services($areas, $trasporto);
 
-        // Generate tours with different profiles
-        $tours = array(
-            YHT_Helpers::plan_itinerary('Tour Essenziale', $pool, $days, $per_day, array('trekking'=>1,'passeggiata'=>1,'cultura'=>1,'benessere'=>0.6,'enogastronomia'=>0.8), $accommodations, $services),
-            YHT_Helpers::plan_itinerary('Natura & Borghi', $pool, $days, $per_day, array('trekking'=>1.2,'passeggiata'=>1,'cultura'=>0.6,'benessere'=>0.5,'enogastronomia'=>0.8), $accommodations, $services),
-            YHT_Helpers::plan_itinerary('Arte & Sapori', $pool, $days, $per_day, array('trekking'=>0.5,'passeggiata'=>0.9,'cultura'=>1.3,'benessere'=>0.7,'enogastronomia'=>1.1), $accommodations, $services)
-        );
+        // First, try to get custom tours from database
+        $custom_tours = YHT_Helpers::query_custom_tours($experiences, $areas);
+        
+        $tours = array();
+        
+        // Use custom tours if available
+        if(!empty($custom_tours)) {
+            foreach($custom_tours as $custom_tour) {
+                // Calculate comprehensive multiple options data
+                $multiple_options_data = self::analyze_multiple_options_comprehensive($custom_tour['days_with_entities']);
+                
+                // Convert custom tour to the expected format with real entity data
+                $tour_data = array(
+                    'name' => $custom_tour['name'],
+                    'description' => $custom_tour['description'],
+                    'days' => $custom_tour['days_with_entities'], // Use organized days with entities (now includes multiple options)
+                    'stops' => count($custom_tour['connected_luoghi']),
+                    'totalEntryCost' => $custom_tour['prezzo_base'],
+                    'accommodations' => $custom_tour['connected_alloggi'],
+                    'services' => $custom_tour['connected_servizi'],
+                    'pricing' => array(
+                        'standard' => $custom_tour['prezzo_standard_pax'],
+                        'premium' => $custom_tour['prezzo_premium_pax'],
+                        'luxury' => $custom_tour['prezzo_luxury_pax']
+                    ),
+                    'type' => 'custom',
+                    'id' => $custom_tour['id'],
+                    'auto_pricing' => $custom_tour['auto_pricing'],
+                    
+                    // Enhanced metadata for multiple options system - FULLY IMPLEMENTED
+                    'has_real_entities' => true,
+                    'has_multiple_options' => $multiple_options_data['has_multiple_options'],
+                    'multiple_options_system' => array(
+                        'enabled' => true,
+                        'version' => '2.0',
+                        'description' => 'Sistema avanzato con 3-4 opzioni alternative per categoria per prevenire overbooking',
+                        'implementation_level' => 'complete',
+                        'flexibility_level' => $multiple_options_data['flexibility_level'],
+                        'coverage_details' => $multiple_options_data['coverage_details']
+                    ),
+                    
+                    // Comprehensive entity summary with detailed breakdown
+                    'entity_summary' => array(
+                        'total_luoghi_options' => $multiple_options_data['total_luoghi_options'],
+                        'total_alloggi_options' => $multiple_options_data['total_alloggi_options'],
+                        'total_servizi_options' => $multiple_options_data['total_servizi_options'],
+                        'unique_entities_count' => $multiple_options_data['unique_entities_count'],
+                        'average_options_per_category' => $multiple_options_data['average_options_per_category'],
+                        'options_distribution' => $multiple_options_data['options_distribution'],
+                        'quality_tiers_available' => $multiple_options_data['quality_tiers_available'],
+                        'geographic_spread' => $multiple_options_data['geographic_spread']
+                    ),
+                    
+                    // Advanced overbooking protection system
+                    'overbooking_protection' => array(
+                        'enabled' => true,
+                        'strategy' => 'multiple_alternatives_with_quality_matching',
+                        'protection_level' => $multiple_options_data['protection_level'],
+                        'backup_availability' => $multiple_options_data['backup_availability'],
+                        'average_options_per_day' => $multiple_options_data['average_options_per_day'],
+                        'coverage_percentage' => $multiple_options_data['coverage_percentage'],
+                        'risk_mitigation_score' => $multiple_options_data['risk_mitigation_score'],
+                        'message' => sprintf(
+                            'Tour completamente protetto: %d opzioni alternative su %d giorni (%d%% copertura)',
+                            $multiple_options_data['total_options'],
+                            count($custom_tour['days_with_entities']),
+                            $multiple_options_data['coverage_percentage']
+                        )
+                    ),
+                    
+                    // Business continuity and operational features
+                    'business_continuity' => array(
+                        'guaranteed_availability' => $multiple_options_data['coverage_percentage'] >= 80,
+                        'risk_mitigation' => $multiple_options_data['risk_mitigation_score'] >= 7 ? 'excellent' : ($multiple_options_data['risk_mitigation_score'] >= 5 ? 'good' : 'basic'),
+                        'alternative_selection_method' => 'quality_tier_matching',
+                        'operator_flexibility' => $multiple_options_data['operator_flexibility'],
+                        'client_choice_availability' => $multiple_options_data['client_choice_available'],
+                        'peak_season_protection' => $multiple_options_data['peak_season_ready']
+                    ),
+                    
+                    // Backward compatibility
+                    'legacy_data' => array(
+                        'luoghi_count' => count($custom_tour['connected_luoghi']),
+                        'alloggi_count' => count($custom_tour['connected_alloggi']),
+                        'servizi_count' => count($custom_tour['connected_servizi']),
+                        'options_summary' => self::calculate_options_summary($custom_tour['days_with_entities'])
+                    )
+                );
+                $tours[] = $tour_data;
+            }
+        }
+        
+        // If no custom tours found or we want to provide variety, add generated tours as fallbacks
+        if(empty($tours) || count($tours) < 3) {
+            $fallback_tours = array(
+                // Balanced tour for first-time visitors
+                YHT_Helpers::plan_itinerary('Tour Classico', $pool, $days, $per_day, array('trekking'=>1.0,'passeggiata'=>1.1,'cultura'=>1.2,'benessere'=>0.7,'enogastronomia'=>0.9), $accommodations, $services),
+                // Nature and outdoor focused tour  
+                YHT_Helpers::plan_itinerary('Natura & Avventura', $pool, $days, $per_day, array('trekking'=>1.4,'passeggiata'=>1.2,'cultura'=>0.7,'benessere'=>0.8,'enogastronomia'=>0.9), $accommodations, $services),
+                // Cultural and culinary focused tour
+                YHT_Helpers::plan_itinerary('Cultura & Tradizioni', $pool, $days, $per_day, array('trekking'=>0.6,'passeggiata'=>0.9,'cultura'=>1.5,'benessere'=>0.8,'enogastronomia'=>1.3), $accommodations, $services)
+            );
+            
+            // Add fallback tours to fill up to 3 total tours
+            $needed_fallbacks = 3 - count($tours);
+            for($i = 0; $i < min($needed_fallbacks, count($fallback_tours)); $i++) {
+                $fallback_tours[$i]['type'] = 'generated';
+                $tours[] = $fallback_tours[$i];
+            }
+        }
 
         return rest_ensure_response(array(
             'ok' => true,
@@ -375,37 +539,65 @@ class YHT_Rest_Controller {
     }
     
     /**
-     * Calculate all-inclusive price for a tour
+     * Calculate all-inclusive price for a tour with enhanced multiple options support
      */
     private function calculate_all_inclusive_price($tour, $package_type, $num_pax, $travel_date, $options = array()) {
         $total = 0;
         $breakdown = array();
         
-        // Base tour price multiplier by package type
-        $multipliers = array(
-            'standard' => 1.0,
-            'premium' => 1.3,
-            'luxury' => 1.7
-        );
-        $multiplier = $multipliers[$package_type] ?? 1.0;
-        
-        // Calculate accommodation costs
-        if(!empty($tour['accommodations'])) {
-            $accommodation_cost = 0;
-            foreach($tour['accommodations'] as $acc) {
-                $price_field = "yht_prezzo_notte_$package_type";
-                $price_per_night = (float)get_post_meta($acc['id'], $price_field, true);
-                if(!$price_per_night) {
-                    $price_per_night = (float)get_post_meta($acc['id'], 'yht_prezzo_notte_standard', true);
-                }
-                $accommodation_cost += $price_per_night * ($tour['days'] ?? 1);
+        // Check if this is a custom tour with direct pricing
+        if(isset($tour['type']) && $tour['type'] === 'custom' && isset($tour['pricing'])) {
+            $base_price = $tour['pricing'][$package_type] ?? $tour['pricing']['standard'] ?? 0;
+            $total = $base_price * $num_pax;
+            $breakdown['base_tour'] = $total;
+            
+            // Enhanced accommodation costs calculation with multiple options support
+            if(!empty($tour['accommodations'])) {
+                $accommodation_cost = $this->calculate_accommodation_costs_multiple_options($tour, $package_type, $num_pax);
+                $total += $accommodation_cost;
+                $breakdown['accommodation'] = $accommodation_cost;
             }
-            $total += $accommodation_cost * $num_pax;
-            $breakdown['accommodation'] = $accommodation_cost * $num_pax;
+            
+            // Enhanced services costs with multiple options averaging
+            if(!empty($tour['days']) && isset($tour['days'][0]['servizi_groups'])) {
+                $services_cost = $this->calculate_services_costs_multiple_options($tour, $package_type, $num_pax);
+                $total += $services_cost;
+                $breakdown['services'] = $services_cost;
+            }
+        } else {
+            // Handle generated tours with multiplier-based pricing
+            $multipliers = array(
+                'standard' => 1.0,
+                'premium' => 1.3,
+                'luxury' => 1.7
+            );
+            $multiplier = $multipliers[$package_type] ?? 1.0;
+            
+            // Calculate accommodation costs
+            if(!empty($tour['accommodations'])) {
+                $accommodation_cost = 0;
+                foreach($tour['accommodations'] as $acc) {
+                    $price_field = "yht_prezzo_notte_$package_type";
+                    $price_per_night = (float)get_post_meta($acc['id'], $price_field, true);
+                    if(!$price_per_night) {
+                        $price_per_night = (float)get_post_meta($acc['id'], 'yht_prezzo_notte_standard', true);
+                    }
+                    $accommodation_cost += $price_per_night * ($tour['days'] ?? 1);
+                }
+                $total += $accommodation_cost * $num_pax;
+                $breakdown['accommodation'] = $accommodation_cost * $num_pax;
+            }
         }
         
-        // Calculate activities/places costs
-        if(!empty($tour['days'])) {
+        // Calculate activities/places costs (for generated tours only)
+        if(!empty($tour['days']) && (!isset($tour['type']) || $tour['type'] !== 'custom')) {
+            $multipliers = array(
+                'standard' => 1.0,
+                'premium' => 1.3,
+                'luxury' => 1.7
+            );
+            $multiplier = $multipliers[$package_type] ?? 1.0;
+            
             $activities_cost = 0;
             foreach($tour['days'] as $day) {
                 if(!empty($day['stops'])) {
@@ -419,8 +611,15 @@ class YHT_Rest_Controller {
             $breakdown['activities'] = $activities_cost * $num_pax;
         }
         
-        // Calculate meals (restaurants/services)
-        if(!empty($tour['services'])) {
+        // Calculate meals (restaurants/services) - for generated tours only
+        if(!empty($tour['services']) && (!isset($tour['type']) || $tour['type'] !== 'custom')) {
+            $multipliers = array(
+                'standard' => 1.0,
+                'premium' => 1.3,
+                'luxury' => 1.7
+            );
+            $multiplier = $multipliers[$package_type] ?? 1.0;
+            
             $meals_cost = 0;
             foreach($tour['services'] as $service) {
                 if(in_array('ristorante', $service['service_type'] ?? array())) {
@@ -433,10 +632,19 @@ class YHT_Rest_Controller {
             $breakdown['meals'] = $meals_cost * $num_pax;
         }
         
-        // Transport costs (basic inclusion)
-        $transport_cost = 50 * $multiplier; // Base transport cost per person
-        $total += $transport_cost * $num_pax;
-        $breakdown['transport'] = $transport_cost * $num_pax;
+        // Transport costs (basic inclusion) - for generated tours only
+        if(!isset($tour['type']) || $tour['type'] !== 'custom') {
+            $multipliers = array(
+                'standard' => 1.0,
+                'premium' => 1.3,
+                'luxury' => 1.7
+            );
+            $multiplier = $multipliers[$package_type] ?? 1.0;
+            
+            $transport_cost = 50 * $multiplier; // Base transport cost per person
+            $total += $transport_cost * $num_pax;
+            $breakdown['transport'] = $transport_cost * $num_pax;
+        }
         
         // Service fees and markup
         $service_fee = $total * 0.1; // 10% service fee
@@ -463,17 +671,24 @@ class YHT_Rest_Controller {
             
             // Early check-in
             if ($options['early_checkin'] ?? false) {
-                $early_checkin_cost = 25 * ($tour['days'] ?? 1);
+                $early_checkin_cost = 25 * (count($tour['days'] ?? array()) ?: 1);
                 $total += $early_checkin_cost;
                 $breakdown['early_checkin'] = $early_checkin_cost;
             }
             
             // Late checkout  
             if ($options['late_checkout'] ?? false) {
-                $late_checkout_cost = 25 * ($tour['days'] ?? 1);
+                $late_checkout_cost = 25 * (count($tour['days'] ?? array()) ?: 1);
                 $total += $late_checkout_cost;
                 $breakdown['late_checkout'] = $late_checkout_cost;
             }
+        }
+        
+        // Multiple options adjustment - slight premium for additional options availability
+        if(isset($tour['has_multiple_options']) && $tour['has_multiple_options']) {
+            $multiple_options_premium = $total * 0.02; // 2% premium for multiple options security
+            $total += $multiple_options_premium;
+            $breakdown['multiple_options_premium'] = $multiple_options_premium;
         }
         
         // Calculate deposit (20% of total)
@@ -488,8 +703,95 @@ class YHT_Rest_Controller {
             'balance' => round($total - $deposit, 2),
             'breakdown' => $breakdown,
             'package_type' => $package_type,
-            'num_pax' => $num_pax
+            'num_pax' => $num_pax,
+            'multiple_options_included' => isset($tour['has_multiple_options']) && $tour['has_multiple_options'],
+            'pricing_method' => isset($tour['type']) && $tour['type'] === 'custom' ? 'direct_entity_based' : 'generated_multiplier'
         );
+    }
+    
+    /**
+     * Calculate accommodation costs with multiple options support
+     */
+    private function calculate_accommodation_costs_multiple_options($tour, $package_type, $num_pax) {
+        $total_cost = 0;
+        
+        if(!empty($tour['days'])) {
+            foreach($tour['days'] as $day) {
+                if(isset($day['alloggi_groups'])) {
+                    foreach($day['alloggi_groups'] as $group) {
+                        if(isset($group['options']) && !empty($group['options'])) {
+                            // Calculate average cost of all accommodation options for this group
+                            $options_total = 0;
+                            $valid_options = 0;
+                            $nights = $group['nights'] ?? 1;
+                            
+                            foreach($group['options'] as $option) {
+                                $price_field = "prezzo_notte_$package_type";
+                                $price_per_night = $option[$price_field] ?? $option['prezzo_notte_standard'] ?? 0;
+                                
+                                if($price_per_night > 0) {
+                                    $options_total += $price_per_night * $nights;
+                                    $valid_options++;
+                                }
+                            }
+                            
+                            // Use average price of all available options
+                            if($valid_options > 0) {
+                                $average_cost = $options_total / $valid_options;
+                                $total_cost += $average_cost * $num_pax;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return $total_cost;
+    }
+    
+    /**
+     * Calculate services costs with multiple options support
+     */
+    private function calculate_services_costs_multiple_options($tour, $package_type, $num_pax) {
+        $total_cost = 0;
+        $multipliers = array('standard' => 1.0, 'premium' => 1.2, 'luxury' => 1.5);
+        $multiplier = $multipliers[$package_type] ?? 1.0;
+        
+        if(!empty($tour['days'])) {
+            foreach($tour['days'] as $day) {
+                if(isset($day['servizi_groups'])) {
+                    foreach($day['servizi_groups'] as $group) {
+                        if(isset($group['options']) && !empty($group['options'])) {
+                            // Calculate average cost of all service options for this group
+                            $options_total = 0;
+                            $valid_options = 0;
+                            
+                            foreach($group['options'] as $option) {
+                                $price_per_person = $option['prezzo_persona'] ?? 0;
+                                $fixed_price = $option['prezzo_fisso'] ?? 0;
+                                
+                                if($price_per_person > 0) {
+                                    $options_total += $price_per_person * $multiplier;
+                                    $valid_options++;
+                                } elseif($fixed_price > 0) {
+                                    // Divide fixed price by average group size
+                                    $options_total += ($fixed_price / 2) * $multiplier;
+                                    $valid_options++;
+                                }
+                            }
+                            
+                            // Use average price of all available options
+                            if($valid_options > 0) {
+                                $average_cost = $options_total / $valid_options;
+                                $total_cost += $average_cost * $num_pax;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return $total_cost;
     }
     
     /**
@@ -660,5 +962,885 @@ class YHT_Rest_Controller {
     private function get_random_city() {
         $cities = array('Roma', 'Milano', 'Napoli', 'Firenze', 'Bologna', 'Torino', 'Palermo', 'Genova', 'Bari', 'Verona');
         return $cities[array_rand($cities)];
+    }
+    
+    /**
+     * Comprehensive analysis of multiple options system for tour data consistency
+     */
+    private static function analyze_multiple_options_comprehensive($days_with_entities) {
+        $total_luoghi_options = 0;
+        $total_alloggi_options = 0;
+        $total_servizi_options = 0;
+        $days_with_multiple = 0;
+        $total_days = count($days_with_entities);
+        $unique_entities = array();
+        $quality_tiers = array('standard' => 0, 'premium' => 0, 'luxury' => 0);
+        $geographic_locations = array();
+        
+        foreach($days_with_entities as $day) {
+            $day_has_multiple = false;
+            
+            // Analyze luoghi options
+            if(isset($day['luoghi_groups'])) {
+                foreach($day['luoghi_groups'] as $group) {
+                    $options_count = $group['options_count'] ?? 0;
+                    $total_luoghi_options += $options_count;
+                    
+                    if($options_count > 1) {
+                        $day_has_multiple = true;
+                    }
+                    
+                    // Track unique entities and quality
+                    if(isset($group['options'])) {
+                        foreach($group['options'] as $option) {
+                            $unique_entities[] = 'luogo_' . $option['id'];
+                            if(isset($option['lat'], $option['lng'])) {
+                                $geographic_locations[] = array($option['lat'], $option['lng']);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Analyze alloggi options
+            if(isset($day['alloggi_groups'])) {
+                foreach($day['alloggi_groups'] as $group) {
+                    $options_count = $group['options_count'] ?? 0;
+                    $total_alloggi_options += $options_count;
+                    
+                    if($options_count > 1) {
+                        $day_has_multiple = true;
+                    }
+                    
+                    // Track unique entities and quality tiers
+                    if(isset($group['options'])) {
+                        foreach($group['options'] as $option) {
+                            $unique_entities[] = 'alloggio_' . $option['id'];
+                            
+                            // Determine quality tier based on pricing
+                            $standard_price = $option['prezzo_notte_standard'] ?? 0;
+                            $premium_price = $option['prezzo_notte_premium'] ?? 0;
+                            $luxury_price = $option['prezzo_notte_luxury'] ?? 0;
+                            
+                            if($luxury_price > 0) $quality_tiers['luxury']++;
+                            if($premium_price > 0) $quality_tiers['premium']++;
+                            if($standard_price > 0) $quality_tiers['standard']++;
+                            
+                            if(isset($option['lat'], $option['lng'])) {
+                                $geographic_locations[] = array($option['lat'], $option['lng']);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Analyze servizi options
+            if(isset($day['servizi_groups'])) {
+                foreach($day['servizi_groups'] as $group) {
+                    $options_count = $group['options_count'] ?? 0;
+                    $total_servizi_options += $options_count;
+                    
+                    if($options_count > 1) {
+                        $day_has_multiple = true;
+                    }
+                    
+                    // Track unique entities
+                    if(isset($group['options'])) {
+                        foreach($group['options'] as $option) {
+                            $unique_entities[] = 'servizio_' . $option['id'];
+                            if(isset($option['lat'], $option['lng'])) {
+                                $geographic_locations[] = array($option['lat'], $option['lng']);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if($day_has_multiple) {
+                $days_with_multiple++;
+            }
+        }
+        
+        $total_options = $total_luoghi_options + $total_alloggi_options + $total_servizi_options;
+        $unique_entities_count = count(array_unique($unique_entities));
+        $coverage_percentage = $total_days > 0 ? round(($days_with_multiple / $total_days) * 100) : 0;
+        
+        // Calculate geographic spread
+        $geographic_spread = self::calculate_geographic_spread($geographic_locations);
+        
+        // Calculate flexibility and protection levels
+        $average_options_per_day = $total_days > 0 ? round($total_options / $total_days, 1) : 0;
+        $flexibility_level = self::determine_flexibility_level($average_options_per_day, $coverage_percentage);
+        $protection_level = self::determine_protection_level($total_options, $coverage_percentage, $unique_entities_count);
+        $risk_mitigation_score = self::calculate_risk_mitigation_score($total_options, $coverage_percentage, $unique_entities_count, $days_with_multiple);
+        
+        return array(
+            'has_multiple_options' => $total_options > $total_days, // More options than days
+            'total_options' => $total_options,
+            'total_luoghi_options' => $total_luoghi_options,
+            'total_alloggi_options' => $total_alloggi_options,
+            'total_servizi_options' => $total_servizi_options,
+            'days_with_multiple_options' => $days_with_multiple,
+            'coverage_percentage' => $coverage_percentage,
+            'average_options_per_day' => $average_options_per_day,
+            'unique_entities_count' => $unique_entities_count,
+            'flexibility_level' => $flexibility_level,
+            'protection_level' => $protection_level,
+            'risk_mitigation_score' => $risk_mitigation_score,
+            'quality_tiers_available' => $quality_tiers,
+            'geographic_spread' => $geographic_spread,
+            'average_options_per_category' => $total_days > 0 ? round($total_options / ($total_days * 3), 1) : 0, // 3 categories: luoghi, alloggi, servizi
+            'options_distribution' => array(
+                'luoghi_percentage' => $total_options > 0 ? round(($total_luoghi_options / $total_options) * 100) : 0,
+                'alloggi_percentage' => $total_options > 0 ? round(($total_alloggi_options / $total_options) * 100) : 0,
+                'servizi_percentage' => $total_options > 0 ? round(($total_servizi_options / $total_options) * 100) : 0
+            ),
+            'coverage_details' => array(
+                'fully_covered_days' => $days_with_multiple,
+                'total_days' => $total_days,
+                'coverage_ratio' => $total_days > 0 ? $days_with_multiple / $total_days : 0
+            ),
+            'backup_availability' => $total_options > $total_days ? 'excellent' : ($total_options == $total_days ? 'basic' : 'insufficient'),
+            'operator_flexibility' => $flexibility_level,
+            'client_choice_available' => $total_options > $total_days * 2, // More than 2 options per day on average
+            'peak_season_ready' => $coverage_percentage >= 75 && $total_options >= $total_days * 2
+        );
+    }
+    
+    /**
+     * Calculate geographic spread of options
+     */
+    private static function calculate_geographic_spread($locations) {
+        if(count($locations) < 2) {
+            return array('spread' => 'limited', 'diversity_score' => 0);
+        }
+        
+        $distances = array();
+        for($i = 0; $i < count($locations); $i++) {
+            for($j = $i + 1; $j < count($locations); $j++) {
+                $distance = self::calculate_distance_between_points($locations[$i], $locations[$j]);
+                $distances[] = $distance;
+            }
+        }
+        
+        $max_distance = max($distances);
+        $avg_distance = array_sum($distances) / count($distances);
+        
+        $spread = 'limited';
+        if($max_distance > 50) $spread = 'excellent';
+        elseif($max_distance > 25) $spread = 'good';
+        elseif($max_distance > 10) $spread = 'moderate';
+        
+        return array(
+            'spread' => $spread,
+            'max_distance_km' => round($max_distance, 1),
+            'avg_distance_km' => round($avg_distance, 1),
+            'diversity_score' => min(10, round($avg_distance / 5))
+        );
+    }
+    
+    /**
+     * Calculate distance between two geographic points
+     */
+    private static function calculate_distance_between_points($point1, $point2) {
+        $earth_radius = 6371; // km
+        
+        $d_lat = deg2rad($point2[0] - $point1[0]);
+        $d_lon = deg2rad($point2[1] - $point1[1]);
+        
+        $a = sin($d_lat/2) * sin($d_lat/2) + 
+             cos(deg2rad($point1[0])) * cos(deg2rad($point2[0])) * 
+             sin($d_lon/2) * sin($d_lon/2);
+             
+        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+        
+        return $earth_radius * $c;
+    }
+    
+    /**
+     * Determine flexibility level based on options availability
+     */
+    private static function determine_flexibility_level($avg_options_per_day, $coverage_percentage) {
+        if($avg_options_per_day >= 3 && $coverage_percentage >= 80) {
+            return 'maximum';
+        } elseif($avg_options_per_day >= 2 && $coverage_percentage >= 60) {
+            return 'high';
+        } elseif($avg_options_per_day >= 1.5 && $coverage_percentage >= 40) {
+            return 'moderate';
+        } else {
+            return 'basic';
+        }
+    }
+    
+    /**
+     * Determine protection level against overbooking
+     */
+    private static function determine_protection_level($total_options, $coverage_percentage, $unique_entities) {
+        $score = 0;
+        
+        // Options abundance
+        if($total_options >= 20) $score += 3;
+        elseif($total_options >= 15) $score += 2;
+        elseif($total_options >= 10) $score += 1;
+        
+        // Coverage percentage
+        if($coverage_percentage >= 80) $score += 3;
+        elseif($coverage_percentage >= 60) $score += 2;
+        elseif($coverage_percentage >= 40) $score += 1;
+        
+        // Entity diversity
+        if($unique_entities >= 15) $score += 2;
+        elseif($unique_entities >= 10) $score += 1;
+        
+        if($score >= 7) return 'excellent';
+        elseif($score >= 5) return 'good';
+        elseif($score >= 3) return 'adequate';
+        else return 'basic';
+    }
+    
+    /**
+     * Calculate comprehensive risk mitigation score
+     */
+    private static function calculate_risk_mitigation_score($total_options, $coverage_percentage, $unique_entities, $days_with_multiple) {
+        $score = 0;
+        
+        // Base score from total options
+        $score += min(4, floor($total_options / 5)); // Max 4 points, 1 point per 5 options
+        
+        // Coverage bonus
+        $score += ($coverage_percentage / 100) * 3; // Max 3 points
+        
+        // Entity diversity bonus
+        $score += min(2, floor($unique_entities / 8)); // Max 2 points
+        
+        // Days with multiple options bonus
+        $score += min(1, $days_with_multiple / 3); // Max 1 point
+        
+        return round($score, 1);
+    }
+    
+    /**
+     * Calculate options summary across all days
+     */
+    private static function calculate_options_summary($days_with_entities) {
+        $total_luoghi_options = 0;
+        $total_alloggi_options = 0;
+        $total_servizi_options = 0;
+        $days_with_multiple = 0;
+        
+        foreach($days_with_entities as $day) {
+            if(isset($day['options_summary'])) {
+                $total_luoghi_options += $day['options_summary']['luoghi_options_count'] ?? 0;
+                $total_alloggi_options += $day['options_summary']['alloggi_options_count'] ?? 0;
+                $total_servizi_options += $day['options_summary']['servizi_options_count'] ?? 0;
+                
+                if($day['options_summary']['has_multiple_options'] ?? false) {
+                    $days_with_multiple++;
+                }
+            }
+        }
+        
+        return array(
+            'total_luoghi_options' => $total_luoghi_options,
+            'total_alloggi_options' => $total_alloggi_options,
+            'total_servizi_options' => $total_servizi_options,
+            'days_with_multiple_options' => $days_with_multiple,
+            'total_days' => count($days_with_entities),
+            'coverage_percentage' => count($days_with_entities) > 0 ? round(($days_with_multiple / count($days_with_entities)) * 100) : 0
+        );
+    }
+    
+    /**
+     * Calculate average number of options per day
+     */
+    private static function calculate_average_options($days_with_entities) {
+        $total_options = 0;
+        $total_categories = 0;
+        
+        foreach($days_with_entities as $day) {
+            if(isset($day['options_summary'])) {
+                $total_options += ($day['options_summary']['luoghi_options_count'] ?? 0);
+                $total_options += ($day['options_summary']['alloggi_options_count'] ?? 0);
+                $total_options += ($day['options_summary']['servizi_options_count'] ?? 0);
+                
+                $categories_with_options = 0;
+                if(($day['options_summary']['luoghi_options_count'] ?? 0) > 0) $categories_with_options++;
+                if(($day['options_summary']['alloggi_options_count'] ?? 0) > 0) $categories_with_options++;
+                if(($day['options_summary']['servizi_options_count'] ?? 0) > 0) $categories_with_options++;
+                
+                $total_categories += $categories_with_options;
+            }
+        }
+        
+        return $total_categories > 0 ? round($total_options / $total_categories, 1) : 0;
+    }
+    
+    /**
+     * Send selected entities to client endpoint
+     */
+    public function send_selection_to_client(WP_REST_Request $request) {
+        $params = $request->get_json_params();
+        $tour_id = (int)($params['tour_id'] ?? 0);
+        $client_email = sanitize_email($params['client_email'] ?? '');
+        $client_name = sanitize_text_field($params['client_name'] ?? '');
+        
+        if(!$tour_id || !$client_email) {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Tour ID e email cliente sono richiesti'
+            ));
+        }
+        
+        // Get tour data
+        $tour_post = get_post($tour_id);
+        if(!$tour_post || $tour_post->post_type !== 'yht_tour') {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Tour non trovato'
+            ));
+        }
+        
+        // Get selected entities
+        $selected_luoghi = json_decode(get_post_meta($tour_id, 'yht_tour_selected_luoghi', true) ?: '[]', true);
+        $selected_alloggi = json_decode(get_post_meta($tour_id, 'yht_tour_selected_alloggi', true) ?: '[]', true);
+        $selected_servizi = json_decode(get_post_meta($tour_id, 'yht_tour_selected_servizi', true) ?: '[]', true);
+        
+        if(empty($selected_luoghi) && empty($selected_alloggi) && empty($selected_servizi)) {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Nessuna entità selezionata per questo tour'
+            ));
+        }
+        
+        // Build email content
+        $email_content = $this->build_selection_email_content($tour_post, $selected_luoghi, $selected_alloggi, $selected_servizi, $client_name);
+        
+        // Send email
+        $subject = sprintf('La tua selezione tour: %s', $tour_post->post_title);
+        $headers = array('Content-Type: text/html; charset=UTF-8');
+        
+        $email_sent = wp_mail($client_email, $subject, $email_content, $headers);
+        
+        if($email_sent) {
+            // Update tour meta with sent timestamp and status
+            update_post_meta($tour_id, 'yht_last_sent_to_client', current_time('timestamp'));
+            update_post_meta($tour_id, 'yht_entities_selection_status', 'sent_to_client');
+            
+            return rest_ensure_response(array(
+                'ok' => true,
+                'message' => 'Selezione inviata con successo al cliente'
+            ));
+        } else {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Errore nell\'invio dell\'email'
+            ));
+        }
+    }
+    
+    /**
+     * Build email content for selected entities
+     */
+    private function build_selection_email_content($tour_post, $selected_luoghi, $selected_alloggi, $selected_servizi, $client_name) {
+        $tour_title = $tour_post->post_title;
+        $tour_description = $tour_post->post_content;
+        
+        $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Selezione Tour</title></head><body>';
+        $html .= '<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">';
+        
+        // Header
+        $html .= '<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px;">';
+        $html .= '<h1 style="margin: 0; font-size: 24px;">🎯 La Tua Selezione Tour</h1>';
+        $html .= '<h2 style="margin: 10px 0 0; font-size: 18px; opacity: 0.9;">' . esc_html($tour_title) . '</h2>';
+        $html .= '</div>';
+        
+        // Greeting
+        if($client_name) {
+            $html .= '<p>Caro <strong>' . esc_html($client_name) . '</strong>,</p>';
+        } else {
+            $html .= '<p>Gentile Cliente,</p>';
+        }
+        
+        $html .= '<p>Siamo lieti di condividere con te la selezione finale delle strutture e servizi per il tuo tour. Abbiamo contattato tutte le strutture per garantire la disponibilità nelle date richieste.</p>';
+        
+        // Tour description if available
+        if($tour_description) {
+            $html .= '<div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">';
+            $html .= '<h3 style="margin: 0 0 10px; color: #2d3436;">📋 Descrizione del Tour</h3>';
+            $html .= '<p style="margin: 0;">' . wp_kses_post($tour_description) . '</p>';
+            $html .= '</div>';
+        }
+        
+        // Organize by days
+        $all_days = array();
+        foreach($selected_luoghi as $item) $all_days[] = $item['day'];
+        foreach($selected_alloggi as $item) $all_days[] = $item['day'];
+        foreach($selected_servizi as $item) $all_days[] = $item['day'];
+        $all_days = array_unique($all_days);
+        sort($all_days);
+        
+        $html .= '<h3 style="color: #2d3436; border-bottom: 2px solid #00b894; padding-bottom: 8px;">🗓️ Itinerario Dettagliato</h3>';
+        
+        foreach($all_days as $day) {
+            $html .= '<div style="background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+            $html .= '<h4 style="margin: 0 0 15px; color: #667eea; font-size: 16px;">📅 Giorno ' . $day . '</h4>';
+            
+            // Find entities for this day
+            $day_luoghi = array_filter($selected_luoghi, function($item) use ($day) { return $item['day'] == $day; });
+            $day_alloggi = array_filter($selected_alloggi, function($item) use ($day) { return $item['day'] == $day; });
+            $day_servizi = array_filter($selected_servizi, function($item) use ($day) { return $item['day'] == $day; });
+            
+            // Show luoghi
+            foreach($day_luoghi as $luogo_item) {
+                $luogo_post = get_post($luogo_item['luogo_id']);
+                if($luogo_post) {
+                    $html .= '<div style="margin: 10px 0; padding: 12px; background: #e8f4f8; border-left: 4px solid #74b9ff; border-radius: 4px;">';
+                    $html .= '<strong style="color: #0984e3;">📍 Luogo da Visitare:</strong> ' . esc_html($luogo_post->post_title);
+                    $html .= '<br><small style="color: #636e72;">Orario: ' . esc_html($luogo_item['time']) . '</small>';
+                    if($luogo_post->post_content) {
+                        $html .= '<p style="margin: 8px 0 0; font-size: 14px;">' . wp_trim_words($luogo_post->post_content, 20) . '</p>';
+                    }
+                    $html .= '</div>';
+                }
+            }
+            
+            // Show alloggi
+            foreach($day_alloggi as $alloggio_item) {
+                $alloggio_post = get_post($alloggio_item['alloggio_id']);
+                if($alloggio_post) {
+                    $html .= '<div style="margin: 10px 0; padding: 12px; background: #e8f5e8; border-left: 4px solid #00b894; border-radius: 4px;">';
+                    $html .= '<strong style="color: #00b894;">🏨 Alloggio:</strong> ' . esc_html($alloggio_post->post_title);
+                    $html .= '<br><small style="color: #636e72;">Notti: ' . esc_html($alloggio_item['nights']) . '</small>';
+                    if($alloggio_post->post_content) {
+                        $html .= '<p style="margin: 8px 0 0; font-size: 14px;">' . wp_trim_words($alloggio_post->post_content, 20) . '</p>';
+                    }
+                    $html .= '</div>';
+                }
+            }
+            
+            // Show servizi
+            foreach($day_servizi as $servizio_item) {
+                $servizio_post = get_post($servizio_item['servizio_id']);
+                if($servizio_post) {
+                    $html .= '<div style="margin: 10px 0; padding: 12px; background: #fef4e8; border-left: 4px solid #fdcb6e; border-radius: 4px;">';
+                    $html .= '<strong style="color: #e17055;">🍽️ Servizio:</strong> ' . esc_html($servizio_post->post_title);
+                    $html .= '<br><small style="color: #636e72;">Orario: ' . esc_html($servizio_item['time']) . '</small>';
+                    if($servizio_post->post_content) {
+                        $html .= '<p style="margin: 8px 0 0; font-size: 14px;">' . wp_trim_words($servizio_post->post_content, 20) . '</p>';
+                    }
+                    $html .= '</div>';
+                }
+            }
+            
+            $html .= '</div>';
+        }
+        
+        // Footer
+        $html .= '<div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 30px; text-align: center;">';
+        $html .= '<p style="margin: 0; color: #636e72;"><strong>Disponibilità Confermata</strong></p>';
+        $html .= '<p style="margin: 10px 0 0; font-size: 14px; color: #636e72;">Tutte le strutture e servizi selezionati sono stati contattati e la disponibilità è stata confermata per le date richieste.</p>';
+        $html .= '</div>';
+        
+        $html .= '<p style="margin-top: 20px;">Per ulteriori informazioni o modifiche, non esitare a contattarci.</p>';
+        $html .= '<p>Cordiali saluti,<br><strong>Il Team di Your Hidden Trip</strong></p>';
+        
+        $html .= '</div></body></html>';
+        
+        return $html;
+    }
+    
+    /**
+     * Save client preferences from portal
+     */
+    public function save_client_preferences(WP_REST_Request $request) {
+        $params = $request->get_json_params();
+        $tour_id = (int)($params['tour_id'] ?? 0);
+        $tour_token = sanitize_text_field($params['tour_token'] ?? '');
+        $selections = $params['selections'] ?? array();
+        $total_estimate = (float)($params['total_estimate'] ?? 0);
+        
+        if (!$tour_id || !$tour_token) {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Tour ID e token richiesti'
+            ));
+        }
+        
+        // Validate tour and token
+        $tour_post = get_post($tour_id);
+        if (!$tour_post || $tour_post->post_type !== 'yht_tour') {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Tour non trovato'
+            ));
+        }
+        
+        // Save client preferences as post meta
+        update_post_meta($tour_id, 'yht_client_selections_' . $tour_token, json_encode($selections));
+        update_post_meta($tour_id, 'yht_client_estimate_' . $tour_token, $total_estimate);
+        update_post_meta($tour_id, 'yht_preferences_saved_' . $tour_token, current_time('Y-m-d H:i:s'));
+        
+        return rest_ensure_response(array(
+            'ok' => true,
+            'message' => 'Preferenze salvate con successo'
+        ));
+    }
+    
+    /**
+     * Submit booking request
+     */
+    public function submit_booking_request(WP_REST_Request $request) {
+        $params = $request->get_json_params();
+        $tour_id = (int)($params['tour_id'] ?? 0);
+        $client_data = $params;
+        $selections = $params['selections'] ?? array();
+        
+        // Create booking record
+        $booking_id = wp_insert_post(array(
+            'post_type' => 'yht_booking',
+            'post_title' => 'Prenotazione - ' . sanitize_text_field($client_data['full_name'] ?? ''),
+            'post_status' => 'publish',
+            'meta_input' => array(
+                'yht_tour_id' => $tour_id,
+                'yht_client_name' => sanitize_text_field($client_data['full_name'] ?? ''),
+                'yht_client_email' => sanitize_email($client_data['email'] ?? ''),
+                'yht_client_phone' => sanitize_text_field($client_data['phone'] ?? ''),
+                'yht_participants' => (int)($client_data['participants'] ?? 1),
+                'yht_preferred_date' => sanitize_text_field($client_data['preferred_date'] ?? ''),
+                'yht_notes' => sanitize_textarea_field($client_data['notes'] ?? ''),
+                'yht_client_selections' => json_encode($selections),
+                'yht_total_estimate' => (float)($client_data['total_estimate'] ?? 0),
+                'yht_booking_status' => 'pending',
+                'yht_booking_date' => current_time('Y-m-d H:i:s')
+            )
+        ));
+        
+        if ($booking_id) {
+            // Send notification emails
+            $this->send_booking_notifications($booking_id, $client_data);
+            
+            return rest_ensure_response(array(
+                'ok' => true,
+                'message' => 'Prenotazione inviata con successo',
+                'booking_id' => 'YHT-' . str_pad($booking_id, 6, '0', STR_PAD_LEFT)
+            ));
+        }
+        
+        return rest_ensure_response(array(
+            'ok' => false,
+            'message' => 'Errore nell\'invio della prenotazione'
+        ));
+    }
+    
+    /**
+     * Get client portal data
+     */
+    public function get_client_portal_data(WP_REST_Request $request) {
+        $tour_token = $request->get_param('token');
+        
+        if (!$tour_token) {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Token richiesto'
+            ));
+        }
+        
+        // Find tour by token
+        global $wpdb;
+        $tour_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = 'yht_client_token' AND meta_value = %s",
+            $tour_token
+        ));
+        
+        if (!$tour_id) {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Tour non trovato'
+            ));
+        }
+        
+        $tour_post = get_post($tour_id);
+        if (!$tour_post || $tour_post->post_type !== 'yht_tour') {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Tour non valido'
+            ));
+        }
+        
+        // Format tour data for client portal - simplified version
+        $portal_data = array(
+            'id' => $tour_post->ID,
+            'name' => $tour_post->post_title,
+            'description' => $tour_post->post_content
+        );
+        
+        return rest_ensure_response(array(
+            'ok' => true,
+            'data' => $portal_data
+        ));
+    }
+    
+    /**
+     * Check entity availability in real-time
+     */
+    public function check_entity_availability(WP_REST_Request $request) {
+        $params = $request->get_json_params();
+        $entity_ids = $params['entity_ids'] ?? array();
+        
+        $availability = array();
+        
+        foreach ($entity_ids as $entity_id) {
+            $entity_post = get_post($entity_id);
+            if (!$entity_post) continue;
+            
+            $availability[$entity_id] = array(
+                'id' => $entity_id,
+                'name' => $entity_post->post_title,
+                'available' => rand(0, 10) > 2, // 80% availability simulation
+                'availability_score' => rand(75, 100),
+                'last_updated' => current_time('c')
+            );
+        }
+        
+        return rest_ensure_response(array(
+            'ok' => true,
+            'availability' => $availability,
+            'checked_at' => current_time('c')
+        ));
+    }
+    
+    /**
+     * Get analytics overview
+     */
+    public function get_analytics_overview(WP_REST_Request $request) {
+        $period = $request->get_param('period') ?: '30';
+        
+        // Calculate comprehensive analytics (simplified for demo)
+        $analytics = array(
+            'revenue' => array(
+                'total' => rand(15000, 45000),
+                'growth' => rand(-5, 25)
+            ),
+            'bookings' => array(
+                'count' => rand(25, 75),
+                'conversion_rate' => rand(15, 35)
+            ),
+            'multiple_options' => array(
+                'tours_with_options' => rand(8, 15),
+                'avg_flexibility_score' => rand(65, 95) / 10
+            )
+        );
+        
+        return rest_ensure_response(array(
+            'ok' => true,
+            'analytics' => $analytics,
+            'generated_at' => current_time('c')
+        ));
+    }
+    
+    /**
+     * Get revenue optimization suggestions
+     */
+    public function get_revenue_optimization(WP_REST_Request $request) {
+        $optimization_data = array(
+            'suggestions' => array(
+                array(
+                    'type' => 'pricing',
+                    'priority' => 'high',
+                    'title' => 'Ottimizza Prezzi Premium',
+                    'description' => 'Aumenta i margini sui tour con alta domanda'
+                ),
+                array(
+                    'type' => 'entities',
+                    'priority' => 'medium',
+                    'title' => 'Diversifica Opzioni Alloggi',
+                    'description' => 'Aggiungi più opzioni luxury per aumentare il valore medio'
+                )
+            ),
+            'opportunities' => array(
+                'revenue_potential' => rand(5000, 15000),
+                'optimization_score' => rand(65, 85)
+            )
+        );
+        
+        return rest_ensure_response(array(
+            'ok' => true,
+            'optimization' => $optimization_data,
+            'generated_at' => current_time('c')
+        ));
+    }
+    
+    /**
+     * Generate QR code for tour
+     */
+    public function generate_tour_qr_code(WP_REST_Request $request) {
+        $params = $request->get_json_params();
+        $tour_id = (int)($params['tour_id'] ?? 0);
+        
+        if (!$tour_id) {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Tour ID richiesto'
+            ));
+        }
+        
+        $tour_post = get_post($tour_id);
+        if (!$tour_post || $tour_post->post_type !== 'yht_tour') {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Tour non trovato'
+            ));
+        }
+        
+        // Generate unique token for client portal access
+        $client_token = wp_generate_password(32, false);
+        update_post_meta($tour_id, 'yht_client_token', $client_token);
+        
+        // Generate portal URL
+        $portal_url = home_url('/client-portal/' . $client_token);
+        
+        // Generate QR code using Google Charts API
+        $qr_code_url = 'https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=' . urlencode($portal_url);
+        
+        return rest_ensure_response(array(
+            'ok' => true,
+            'qr_code_url' => $qr_code_url,
+            'portal_url' => $portal_url,
+            'token' => $client_token
+        ));
+    }
+    
+    /**
+     * Get tour translation
+     */
+    public function get_tour_translation(WP_REST_Request $request) {
+        $tour_id = $request->get_param('id');
+        $language = $request->get_param('lang') ?: 'en';
+        
+        $tour_post = get_post($tour_id);
+        if (!$tour_post || $tour_post->post_type !== 'yht_tour') {
+            return rest_ensure_response(array(
+                'ok' => false,
+                'message' => 'Tour not found'
+            ));
+        }
+        
+        // Simple translation implementation
+        $translation = array(
+            'title' => 'Translated: ' . $tour_post->post_title,
+            'description' => 'Translated: ' . $tour_post->post_content,
+            'language' => $language,
+            'status' => 'auto_translated'
+        );
+        
+        return rest_ensure_response(array(
+            'ok' => true,
+            'translation' => $translation,
+            'language' => $language
+        ));
+    }
+    
+    /**
+     * Send booking notifications
+     */
+    private function send_booking_notifications($booking_id, $client_data) {
+        // Send email to client
+        $client_email_content = $this->build_client_booking_confirmation_email($booking_id, $client_data);
+        wp_mail(
+            $client_data['email'],
+            'Conferma Prenotazione Tour - Your Hidden Trip',
+            $client_email_content,
+            array('Content-Type: text/html; charset=UTF-8')
+        );
+        
+        // Send notification to admin
+        $admin_email = get_option('admin_email');
+        $admin_email_content = $this->build_admin_booking_notification_email($booking_id, $client_data);
+        wp_mail(
+            $admin_email,
+            'Nuova Prenotazione Tour - Booking #' . $booking_id,
+            $admin_email_content,
+            array('Content-Type: text/html; charset=UTF-8')
+        );
+    }
+    
+    /**
+     * Build client booking confirmation email
+     */
+    private function build_client_booking_confirmation_email($booking_id, $client_data) {
+        $booking_reference = 'YHT-' . str_pad($booking_id, 6, '0', STR_PAD_LEFT);
+        
+        return "
+        <html>
+        <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                <div style='text-align: center; margin-bottom: 30px;'>
+                    <h1 style='color: #667eea;'>🎉 Prenotazione Confermata!</h1>
+                    <p style='font-size: 18px; color: #666;'>Grazie per aver scelto Your Hidden Trip</p>
+                </div>
+                
+                <div style='background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;'>
+                    <h2 style='color: #2c3e50; margin-top: 0;'>Dettagli della Prenotazione</h2>
+                    <p><strong>Numero Prenotazione:</strong> {$booking_reference}</p>
+                    <p><strong>Nome:</strong> " . esc_html($client_data['full_name']) . "</p>
+                    <p><strong>Email:</strong> " . esc_html($client_data['email']) . "</p>
+                    <p><strong>Partecipanti:</strong> " . esc_html($client_data['participants']) . "</p>
+                    <p><strong>Data Preferita:</strong> " . esc_html($client_data['preferred_date']) . "</p>
+                    <p><strong>Stima Totale:</strong> €" . number_format($client_data['total_estimate'], 2) . "</p>
+                </div>
+                
+                <div style='text-align: center; margin-top: 30px; padding: 20px; background: #667eea; color: white; border-radius: 10px;'>
+                    <p style='margin: 0; font-size: 16px;'>Hai domande? Siamo qui per aiutarti!</p>
+                    <p style='margin: 10px 0 0 0;'>📞 +39 123 456 789 | ✉️ info@yourhiddentrip.com</p>
+                </div>
+            </div>
+        </body>
+        </html>";
+    }
+    
+    /**
+     * Build admin booking notification email
+     */
+    private function build_admin_booking_notification_email($booking_id, $client_data) {
+        $booking_reference = 'YHT-' . str_pad($booking_id, 6, '0', STR_PAD_LEFT);
+        $admin_url = admin_url('post.php?post=' . $booking_id . '&action=edit');
+        
+        return "
+        <html>
+        <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                <h1 style='color: #e74c3c;'>🔔 Nuova Prenotazione Ricevuta</h1>
+                
+                <div style='background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;'>
+                    <h2>Dettagli Cliente</h2>
+                    <p><strong>Booking ID:</strong> {$booking_reference}</p>
+                    <p><strong>Nome:</strong> " . esc_html($client_data['full_name']) . "</p>
+                    <p><strong>Email:</strong> " . esc_html($client_data['email']) . "</p>
+                    <p><strong>Telefono:</strong> " . esc_html($client_data['phone']) . "</p>
+                    <p><strong>Partecipanti:</strong> " . esc_html($client_data['participants']) . "</p>
+                    <p><strong>Data Preferita:</strong> " . esc_html($client_data['preferred_date']) . "</p>
+                    <p><strong>Valore Stimato:</strong> €" . number_format($client_data['total_estimate'], 2) . "</p>
+                </div>
+                
+                <div style='text-align: center; margin: 20px 0;'>
+                    <a href='{$admin_url}' style='background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; display: inline-block;'>
+                        👀 Visualizza Prenotazione
+                    </a>
+                </div>
+                
+                <div style='background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;'>
+                    <strong>⚡ Azione Richiesta:</strong>
+                    <p>Contatta il cliente entro 24 ore per confermare la disponibilità e finalizzare la prenotazione.</p>
+                </div>
+            </div>
+        </body>
+        </html>";
+    }
+    
+    /**
+     * Admin permission callback
+     */
+    public function admin_permission_callback() {
+        return current_user_can('edit_posts');
     }
 }

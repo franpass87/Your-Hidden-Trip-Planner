@@ -415,4 +415,547 @@ class YHT_Helpers {
         
         return $earth_radius * $c;
     }
+    
+    /**
+     * Query custom tours from database with connected entities
+     */
+    public static function query_custom_tours($experiences = array(), $areas = array()) {
+        $tax_query = array('relation' => 'AND');
+        
+        if(!empty($experiences)) {
+            $tax_query[] = array(
+                'taxonomy' => 'yht_esperienza',
+                'field' => 'slug',
+                'terms' => $experiences,
+                'operator' => 'IN'
+            );
+        }
+        
+        if(!empty($areas)) {
+            $tax_query[] = array(
+                'taxonomy' => 'yht_area',
+                'field' => 'slug',
+                'terms' => $areas,
+                'operator' => 'IN'
+            );
+        }
+        
+        $query = new WP_Query(array(
+            'post_type' => 'yht_tour',
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'tax_query' => (count($tax_query) > 1 ? $tax_query : array()),
+            'no_found_rows' => true,
+        ));
+
+        $results = array();
+        
+        while($query->have_posts()) { 
+            $query->the_post();
+            $id = get_the_ID();
+            
+            // Get basic tour data
+            $giorni_json = get_post_meta($id,'yht_giorni',true);
+            $giorni_data = json_decode($giorni_json, true);
+            if(!is_array($giorni_data)) $giorni_data = array();
+            
+            // Get entity relationships
+            $luoghi_json = get_post_meta($id,'yht_tour_luoghi',true);
+            $alloggi_json = get_post_meta($id,'yht_tour_alloggi',true);
+            $servizi_json = get_post_meta($id,'yht_tour_servizi',true);
+            
+            $luoghi_data = json_decode($luoghi_json, true) ?: array();
+            $alloggi_data = json_decode($alloggi_json, true) ?: array();
+            $servizi_data = json_decode($servizi_json, true) ?: array();
+            
+            // Fetch full entity data
+            $connected_luoghi = self::fetch_connected_luoghi($luoghi_data);
+            $connected_alloggi = self::fetch_connected_alloggi($alloggi_data);
+            $connected_servizi = self::fetch_connected_servizi($servizi_data);
+            
+            $results[] = array(
+                'id' => $id,
+                'name' => get_the_title(),
+                'description' => wp_strip_all_tags(get_the_excerpt()),
+                'content' => get_the_content(),
+                'giorni' => $giorni_data,
+                'prezzo_base' => (float) get_post_meta($id,'yht_prezzo_base',true),
+                'prezzo_standard_pax' => (float) get_post_meta($id,'yht_prezzo_standard_pax',true),
+                'prezzo_premium_pax' => (float) get_post_meta($id,'yht_prezzo_premium_pax',true),
+                'prezzo_luxury_pax' => (float) get_post_meta($id,'yht_prezzo_luxury_pax',true),
+                'auto_pricing' => get_post_meta($id,'yht_auto_pricing',true) === '1',
+                'experiences' => wp_get_post_terms($id,'yht_esperienza',array('fields'=>'slugs')),
+                'areas' => wp_get_post_terms($id,'yht_area',array('fields'=>'slugs')),
+                'targets' => wp_get_post_terms($id,'yht_target',array('fields'=>'slugs')),
+                'seasons' => wp_get_post_terms($id,'yht_stagione',array('fields'=>'slugs')),
+                'link' => get_permalink($id),
+                'type' => 'custom_tour',
+                
+                // Connected entities with full data
+                'connected_luoghi' => $connected_luoghi,
+                'connected_alloggi' => $connected_alloggi,
+                'connected_servizi' => $connected_servizi,
+                
+                // Organized days with integrated entities
+                'days_with_entities' => self::organize_tour_days($giorni_data, $connected_luoghi, $connected_alloggi, $connected_servizi)
+            );
+        }
+        wp_reset_postdata();
+        
+        return $results;
+    }
+    
+    /**
+     * Fetch full data for connected luoghi - now supports multiple options per day
+     */
+    private static function fetch_connected_luoghi($luoghi_data) {
+        $connected = array();
+        
+        foreach($luoghi_data as $item) {
+            // Handle both old format (single luogo_id) and new format (array of luoghi_ids)
+            $luogo_ids = array();
+            if(isset($item['luoghi_ids']) && is_array($item['luoghi_ids'])) {
+                $luogo_ids = $item['luoghi_ids']; // New format with multiple options
+            } elseif(isset($item['luogo_id'])) {
+                $luogo_ids = array($item['luogo_id']); // Old format backwards compatibility
+            }
+            
+            $day_options = array();
+            foreach($luogo_ids as $luogo_id) {
+                $luogo = get_post($luogo_id);
+                
+                if($luogo && $luogo->post_status === 'publish') {
+                    $day_options[] = array(
+                        'id' => $luogo_id,
+                        'title' => $luogo->post_title,
+                        'excerpt' => wp_strip_all_tags(get_the_excerpt($luogo)),
+                        'lat' => (float) get_post_meta($luogo_id,'yht_lat',true),
+                        'lng' => (float) get_post_meta($luogo_id,'yht_lng',true),
+                        'cost' => (float) get_post_meta($luogo_id,'yht_cost_ingresso',true),
+                        'durata' => (int) get_post_meta($luogo_id,'yht_durata_min',true),
+                        'exp' => wp_get_post_terms($luogo_id,'yht_esperienza',array('fields'=>'slugs')),
+                        'area' => wp_get_post_terms($luogo_id,'yht_area',array('fields'=>'slugs')),
+                        'link' => get_permalink($luogo_id),
+                        'type' => 'luogo'
+                    );
+                }
+            }
+            
+            if(!empty($day_options)) {
+                $connected[] = array(
+                    'day' => $item['day'],
+                    'time' => $item['time'],
+                    'note' => $item['note'] ?? '',
+                    'options' => $day_options, // Array of alternative luoghi
+                    'options_count' => count($day_options),
+                    'type' => 'luoghi_group'
+                );
+            }
+        }
+        
+        return $connected;
+    }
+    
+    /**
+     * Fetch full data for connected alloggi - now supports multiple options per day  
+     */
+    private static function fetch_connected_alloggi($alloggi_data) {
+        $connected = array();
+        
+        foreach($alloggi_data as $item) {
+            // Handle both old format (single alloggio_id) and new format (array of alloggi_ids)
+            $alloggio_ids = array();
+            if(isset($item['alloggi_ids']) && is_array($item['alloggi_ids'])) {
+                $alloggio_ids = $item['alloggi_ids']; // New format with multiple options
+            } elseif(isset($item['alloggio_id'])) {
+                $alloggio_ids = array($item['alloggio_id']); // Old format backwards compatibility
+            }
+            
+            $day_options = array();
+            foreach($alloggio_ids as $alloggio_id) {
+                $alloggio = get_post($alloggio_id);
+                
+                if($alloggio && $alloggio->post_status === 'publish') {
+                    $day_options[] = array(
+                        'id' => $alloggio_id,
+                        'title' => $alloggio->post_title,
+                        'excerpt' => wp_strip_all_tags(get_the_excerpt($alloggio)),
+                        'lat' => (float) get_post_meta($alloggio_id,'yht_lat',true),
+                        'lng' => (float) get_post_meta($alloggio_id,'yht_lng',true),
+                        'fascia_prezzo' => get_post_meta($alloggio_id,'yht_fascia_prezzo',true),
+                        'capienza' => (int) get_post_meta($alloggio_id,'yht_capienza',true),
+                        'prezzo_notte_standard' => (float) get_post_meta($alloggio_id,'yht_prezzo_notte_standard',true),
+                        'prezzo_notte_premium' => (float) get_post_meta($alloggio_id,'yht_prezzo_notte_premium',true),
+                        'prezzo_notte_luxury' => (float) get_post_meta($alloggio_id,'yht_prezzo_notte_luxury',true),
+                        'incluso_colazione' => get_post_meta($alloggio_id,'yht_incluso_colazione',true) === '1',
+                        'incluso_pranzo' => get_post_meta($alloggio_id,'yht_incluso_pranzo',true) === '1',
+                        'incluso_cena' => get_post_meta($alloggio_id,'yht_incluso_cena',true) === '1',
+                        'link' => get_permalink($alloggio_id),
+                        'type' => 'accommodation'
+                    );
+                }
+            }
+            
+            if(!empty($day_options)) {
+                $connected[] = array(
+                    'day' => $item['day'],
+                    'nights' => $item['nights'],
+                    'note' => $item['note'] ?? '',
+                    'options' => $day_options, // Array of alternative accommodations
+                    'options_count' => count($day_options),
+                    'type' => 'alloggi_group'
+                );
+            }
+        }
+        
+        return $connected;
+    }
+    
+    /**
+     * Fetch full data for connected servizi - now supports multiple options per day
+     */
+    private static function fetch_connected_servizi($servizi_data) {
+        $connected = array();
+        
+        foreach($servizi_data as $item) {
+            // Handle both old format (single servizio_id) and new format (array of servizi_ids)
+            $servizio_ids = array();
+            if(isset($item['servizi_ids']) && is_array($item['servizi_ids'])) {
+                $servizio_ids = $item['servizi_ids']; // New format with multiple options
+            } elseif(isset($item['servizio_id'])) {
+                $servizio_ids = array($item['servizio_id']); // Old format backwards compatibility
+            }
+            
+            $day_options = array();
+            foreach($servizio_ids as $servizio_id) {
+                $servizio = get_post($servizio_id);
+                
+                if($servizio && $servizio->post_status === 'publish') {
+                    $day_options[] = array(
+                        'id' => $servizio_id,
+                        'title' => $servizio->post_title,
+                        'excerpt' => wp_strip_all_tags(get_the_excerpt($servizio)),
+                        'lat' => (float) get_post_meta($servizio_id,'yht_lat',true),
+                        'lng' => (float) get_post_meta($servizio_id,'yht_lng',true),
+                        'fascia_prezzo' => get_post_meta($servizio_id,'yht_fascia_prezzo',true),
+                        'orari' => get_post_meta($servizio_id,'yht_orari',true),
+                        'telefono' => get_post_meta($servizio_id,'yht_telefono',true),
+                        'sito_web' => get_post_meta($servizio_id,'yht_sito_web',true),
+                        'prezzo_persona' => (float) get_post_meta($servizio_id,'yht_prezzo_persona',true),
+                        'prezzo_fisso' => (float) get_post_meta($servizio_id,'yht_prezzo_fisso',true),
+                        'durata_servizio' => (int) get_post_meta($servizio_id,'yht_durata_servizio',true),
+                        'capacita_max' => (int) get_post_meta($servizio_id,'yht_capacita_max',true),
+                        'prenotazione_richiesta' => get_post_meta($servizio_id,'yht_prenotazione_richiesta',true) === '1',
+                        'service_type' => wp_get_post_terms($servizio_id,'yht_tipo_servizio',array('fields'=>'slugs')),
+                        'link' => get_permalink($servizio_id),
+                        'type' => 'service'
+                    );
+                }
+            }
+            
+            if(!empty($day_options)) {
+                $connected[] = array(
+                    'day' => $item['day'],
+                    'time' => $item['time'],
+                    'note' => $item['note'] ?? '',
+                    'options' => $day_options, // Array of alternative services
+                    'options_count' => count($day_options),
+                    'type' => 'servizi_group'
+                );
+            }
+        }
+        
+        return $connected;
+    }
+    
+    /**
+     * Organize tour days with integrated entity data - enhanced for full multiple options consistency
+     */
+    private static function organize_tour_days($giorni_data, $luoghi, $alloggi, $servizi) {
+        $organized_days = array();
+        
+        foreach($giorni_data as $day_info) {
+            $day = $day_info['day'];
+            
+            // Get entity groups for this day
+            $day_luoghi = array_filter($luoghi, function($item) use ($day) { return $item['day'] == $day; });
+            $day_alloggi = array_filter($alloggi, function($item) use ($day) { return $item['day'] == $day; });
+            $day_servizi = array_filter($servizi, function($item) use ($day) { return $item['day'] == $day; });
+            
+            // Sort groups by time for consistency
+            usort($day_luoghi, function($a, $b) { return strcmp($a['time'], $b['time']); });
+            usort($day_servizi, function($a, $b) { return strcmp($a['time'], $b['time']); });
+            
+            // Calculate comprehensive options summary for this day
+            $day_options_summary = self::calculate_day_options_summary($day_luoghi, $day_alloggi, $day_servizi);
+            
+            $organized_days[] = array(
+                'day' => $day,
+                'description' => $day_info['description'],
+                
+                // Multiple options groups - MAIN FEATURE
+                'luoghi_groups' => array_values($day_luoghi), // Groups of alternative luoghi options
+                'alloggi_groups' => array_values($day_alloggi), // Groups of alternative alloggi options
+                'servizi_groups' => array_values($day_servizi), // Groups of alternative servizi options
+                
+                // Backward compatibility - provide flattened single entities using first option from each group
+                'luoghi' => self::flatten_entity_groups($day_luoghi, 'options'),
+                'alloggi' => self::flatten_entity_groups($day_alloggi, 'options'), 
+                'servizi' => self::flatten_entity_groups($day_servizi, 'options'),
+                
+                // Enhanced timeline showing multiple options with business logic
+                'timeline' => self::create_enhanced_timeline($day_luoghi, $day_servizi),
+                'timeline_with_options' => self::create_options_aware_timeline($day_luoghi, $day_servizi),
+                
+                // Comprehensive options summary for this specific day
+                'options_summary' => $day_options_summary,
+                
+                // Business intelligence data
+                'business_data' => array(
+                    'overbooking_risk' => $day_options_summary['has_multiple_options'] ? 'low' : 'high',
+                    'flexibility_score' => self::calculate_day_flexibility_score($day_options_summary),
+                    'choice_diversity' => self::calculate_choice_diversity($day_luoghi, $day_alloggi, $day_servizi),
+                    'operator_control' => $day_options_summary['total_options'] >= 3 ? 'excellent' : ($day_options_summary['total_options'] >= 2 ? 'good' : 'basic')
+                ),
+                
+                // Quality assurance data
+                'quality_metrics' => array(
+                    'options_per_category' => array(
+                        'luoghi' => array_sum(array_column($day_luoghi, 'options_count')),
+                        'alloggi' => array_sum(array_column($day_alloggi, 'options_count')),
+                        'servizi' => array_sum(array_column($day_servizi, 'options_count'))
+                    ),
+                    'minimum_guaranteed' => min(
+                        array_sum(array_column($day_luoghi, 'options_count')) ?: 0,
+                        array_sum(array_column($day_alloggi, 'options_count')) ?: 0,
+                        array_sum(array_column($day_servizi, 'options_count')) ?: 0
+                    ),
+                    'redundancy_level' => $day_options_summary['total_options'] > 3 ? 'high' : ($day_options_summary['total_options'] > 1 ? 'medium' : 'none')
+                )
+            );
+        }
+        
+        return $organized_days;
+    }
+    
+    /**
+     * Calculate comprehensive options summary for a specific day
+     */
+    private static function calculate_day_options_summary($luoghi_groups, $alloggi_groups, $servizi_groups) {
+        $luoghi_options_count = array_sum(array_column($luoghi_groups, 'options_count'));
+        $alloggi_options_count = array_sum(array_column($alloggi_groups, 'options_count'));
+        $servizi_options_count = array_sum(array_column($servizi_groups, 'options_count'));
+        $total_options = $luoghi_options_count + $alloggi_options_count + $servizi_options_count;
+        
+        return array(
+            'luoghi_options_count' => $luoghi_options_count,
+            'alloggi_options_count' => $alloggi_options_count,
+            'servizi_options_count' => $servizi_options_count,
+            'total_options' => $total_options,
+            'has_multiple_options' => (
+                (count($luoghi_groups) > 0 && $luoghi_groups[0]['options_count'] > 1) ||
+                (count($alloggi_groups) > 0 && $alloggi_groups[0]['options_count'] > 1) ||
+                (count($servizi_groups) > 0 && $servizi_groups[0]['options_count'] > 1)
+            ),
+            'categories_with_options' => array(
+                'luoghi' => count($luoghi_groups) > 0,
+                'alloggi' => count($alloggi_groups) > 0,
+                'servizi' => count($servizi_groups) > 0
+            ),
+            'coverage_completeness' => array(
+                'has_luoghi' => count($luoghi_groups) > 0,
+                'has_alloggi' => count($alloggi_groups) > 0,
+                'has_servizi' => count($servizi_groups) > 0,
+                'all_categories_covered' => count($luoghi_groups) > 0 && count($alloggi_groups) > 0 && count($servizi_groups) > 0
+            )
+        );
+    }
+    
+    /**
+     * Calculate flexibility score for a day based on options availability
+     */
+    private static function calculate_day_flexibility_score($options_summary) {
+        $score = 0;
+        
+        // Base score from total options
+        $score += min(5, $options_summary['total_options']); // Max 5 points
+        
+        // Bonus for having multiple options in each category
+        if($options_summary['luoghi_options_count'] > 1) $score += 2;
+        if($options_summary['alloggi_options_count'] > 1) $score += 2;
+        if($options_summary['servizi_options_count'] > 1) $score += 2;
+        
+        // Bonus for complete coverage
+        if($options_summary['coverage_completeness']['all_categories_covered']) $score += 1;
+        
+        return min(10, $score); // Cap at 10
+    }
+    
+    /**
+     * Calculate choice diversity based on geographic and type variety
+     */
+    private static function calculate_choice_diversity($luoghi_groups, $alloggi_groups, $servizi_groups) {
+        $diversity_score = 0;
+        $total_unique_entities = 0;
+        
+        // Count unique entities across all groups
+        foreach($luoghi_groups as $group) {
+            $total_unique_entities += count($group['options'] ?? array());
+        }
+        foreach($alloggi_groups as $group) {
+            $total_unique_entities += count($group['options'] ?? array());
+        }
+        foreach($servizi_groups as $group) {
+            $total_unique_entities += count($group['options'] ?? array());
+        }
+        
+        // Basic diversity from entity count
+        $diversity_score = min(8, $total_unique_entities);
+        
+        // Bonus for balanced distribution
+        $luoghi_count = array_sum(array_column($luoghi_groups, 'options_count'));
+        $alloggi_count = array_sum(array_column($alloggi_groups, 'options_count'));
+        $servizi_count = array_sum(array_column($servizi_groups, 'options_count'));
+        
+        if($luoghi_count > 0 && $alloggi_count > 0 && $servizi_count > 0) {
+            $diversity_score += 2; // Bonus for having all categories
+        }
+        
+        return array(
+            'score' => min(10, $diversity_score),
+            'level' => $diversity_score >= 8 ? 'excellent' : ($diversity_score >= 5 ? 'good' : ($diversity_score >= 3 ? 'moderate' : 'basic')),
+            'unique_entities' => $total_unique_entities
+        );
+    }
+    
+    /**
+     * Create options-aware timeline that shows alternative choices
+     */
+    private static function create_options_aware_timeline($luoghi_groups, $servizi_groups) {
+        $timeline = array();
+        
+        foreach($luoghi_groups as $group) {
+            $timeline[] = array(
+                'time' => $group['time'],
+                'type' => 'places_group',
+                'group' => $group,
+                'options_count' => $group['options_count'],
+                'note' => $group['note'],
+                'flexibility' => $group['options_count'] > 1 ? 'high' : 'none',
+                'primary_option' => isset($group['options'][0]) ? $group['options'][0] : null,
+                'alternative_count' => max(0, $group['options_count'] - 1),
+                'business_impact' => array(
+                    'overbooking_protection' => $group['options_count'] > 1,
+                    'choice_available' => $group['options_count'] > 1,
+                    'risk_mitigation' => $group['options_count'] >= 2 ? 'good' : 'basic'
+                )
+            );
+        }
+        
+        foreach($servizi_groups as $group) {
+            $timeline[] = array(
+                'time' => $group['time'],
+                'type' => 'services_group',
+                'group' => $group,
+                'options_count' => $group['options_count'],
+                'note' => $group['note'],
+                'flexibility' => $group['options_count'] > 1 ? 'high' : 'none',
+                'primary_option' => isset($group['options'][0]) ? $group['options'][0] : null,
+                'alternative_count' => max(0, $group['options_count'] - 1),
+                'business_impact' => array(
+                    'overbooking_protection' => $group['options_count'] > 1,
+                    'choice_available' => $group['options_count'] > 1,
+                    'risk_mitigation' => $group['options_count'] >= 2 ? 'good' : 'basic'
+                )
+            );
+        }
+        
+        // Sort by time for chronological consistency
+        usort($timeline, function($a, $b) { return strcmp($a['time'], $b['time']); });
+        
+        return $timeline;
+    }
+    
+    /**
+     * Flatten entity groups to single entities for backward compatibility
+     */
+    private static function flatten_entity_groups($groups, $options_key) {
+        $flattened = array();
+        
+        foreach($groups as $group) {
+            if(isset($group[$options_key]) && !empty($group[$options_key])) {
+                // Take the first option from each group for backward compatibility
+                $first_option = $group[$options_key][0];
+                $first_option['day'] = $group['day'];
+                $first_option['time'] = $group['time'] ?? '';
+                $first_option['nights'] = $group['nights'] ?? 1;
+                $first_option['note'] = $group['note'] ?? '';
+                $first_option['has_alternatives'] = count($group[$options_key]) > 1;
+                $first_option['alternatives_count'] = count($group[$options_key]);
+                $flattened[] = $first_option;
+            }
+        }
+        
+        return $flattened;
+    }
+    
+    /**
+     * Create enhanced timeline showing multiple options for activities
+     */
+    private static function create_enhanced_timeline($luoghi_groups, $servizi_groups) {
+        $timeline = array();
+        
+        foreach($luoghi_groups as $group) {
+            $timeline[] = array(
+                'time' => $group['time'],
+                'type' => 'places',
+                'group' => $group,
+                'options_count' => $group['options_count'],
+                'note' => $group['note']
+            );
+        }
+        
+        foreach($servizi_groups as $group) {
+            $timeline[] = array(
+                'time' => $group['time'],
+                'type' => 'services',
+                'group' => $group,
+                'options_count' => $group['options_count'],
+                'note' => $group['note']
+            );
+        }
+        
+        // Sort by time
+        usort($timeline, function($a, $b) { return strcmp($a['time'], $b['time']); });
+        
+        return $timeline;
+    }
+    
+    /**
+     * Create a unified timeline of activities for a day (backward compatibility)
+     */
+    private static function create_day_timeline($luoghi, $servizi) {
+        $timeline = array();
+        
+        foreach($luoghi as $luogo) {
+            $timeline[] = array(
+                'time' => $luogo['time'],
+                'type' => 'place',
+                'entity' => $luogo
+            );
+        }
+        
+        foreach($servizi as $servizio) {
+            $timeline[] = array(
+                'time' => $servizio['time'],
+                'type' => 'service',
+                'entity' => $servizio
+            );
+        }
+        
+        // Sort by time
+        usort($timeline, function($a, $b) { return strcmp($a['time'], $b['time']); });
+        
+        return $timeline;
+    }
 }
