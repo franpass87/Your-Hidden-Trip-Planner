@@ -415,4 +415,68 @@ class YHT_Helpers {
         
         return $earth_radius * $c;
     }
+    
+    /**
+     * Query custom tours from database
+     */
+    public static function query_custom_tours($experiences = array(), $areas = array()) {
+        $tax_query = array('relation' => 'AND');
+        
+        if(!empty($experiences)) {
+            $tax_query[] = array(
+                'taxonomy' => 'yht_esperienza',
+                'field' => 'slug',
+                'terms' => $experiences,
+                'operator' => 'IN'
+            );
+        }
+        
+        if(!empty($areas)) {
+            $tax_query[] = array(
+                'taxonomy' => 'yht_area',
+                'field' => 'slug',
+                'terms' => $areas,
+                'operator' => 'IN'
+            );
+        }
+        
+        $query = new WP_Query(array(
+            'post_type' => 'yht_tour',
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'tax_query' => (count($tax_query) > 1 ? $tax_query : array()),
+            'no_found_rows' => true,
+        ));
+
+        $results = array();
+        
+        while($query->have_posts()) { 
+            $query->the_post();
+            $id = get_the_ID();
+            $giorni_json = get_post_meta($id,'yht_giorni',true);
+            $giorni_data = json_decode($giorni_json, true);
+            if(!is_array($giorni_data)) $giorni_data = array();
+            
+            $results[] = array(
+                'id' => $id,
+                'name' => get_the_title(),
+                'description' => wp_strip_all_tags(get_the_excerpt()),
+                'content' => get_the_content(),
+                'giorni' => $giorni_data,
+                'prezzo_base' => (float) get_post_meta($id,'yht_prezzo_base',true),
+                'prezzo_standard_pax' => (float) get_post_meta($id,'yht_prezzo_standard_pax',true),
+                'prezzo_premium_pax' => (float) get_post_meta($id,'yht_prezzo_premium_pax',true),
+                'prezzo_luxury_pax' => (float) get_post_meta($id,'yht_prezzo_luxury_pax',true),
+                'experiences' => wp_get_post_terms($id,'yht_esperienza',array('fields'=>'slugs')),
+                'areas' => wp_get_post_terms($id,'yht_area',array('fields'=>'slugs')),
+                'targets' => wp_get_post_terms($id,'yht_target',array('fields'=>'slugs')),
+                'seasons' => wp_get_post_terms($id,'yht_stagione',array('fields'=>'slugs')),
+                'link' => get_permalink($id),
+                'type' => 'custom_tour'
+            );
+        }
+        wp_reset_postdata();
+        
+        return $results;
+    }
 }

@@ -89,12 +89,50 @@ class YHT_Rest_Controller {
         $accommodations = YHT_Helpers::query_accommodations($areas, $startdate, $days);
         $services = YHT_Helpers::query_services($areas, $trasporto);
 
-        // Generate tours with different profiles
-        $tours = array(
-            YHT_Helpers::plan_itinerary('Tour Essenziale', $pool, $days, $per_day, array('trekking'=>1,'passeggiata'=>1,'cultura'=>1,'benessere'=>0.6,'enogastronomia'=>0.8), $accommodations, $services),
-            YHT_Helpers::plan_itinerary('Natura & Borghi', $pool, $days, $per_day, array('trekking'=>1.2,'passeggiata'=>1,'cultura'=>0.6,'benessere'=>0.5,'enogastronomia'=>0.8), $accommodations, $services),
-            YHT_Helpers::plan_itinerary('Arte & Sapori', $pool, $days, $per_day, array('trekking'=>0.5,'passeggiata'=>0.9,'cultura'=>1.3,'benessere'=>0.7,'enogastronomia'=>1.1), $accommodations, $services)
-        );
+        // First, try to get custom tours from database
+        $custom_tours = YHT_Helpers::query_custom_tours($experiences, $areas);
+        
+        $tours = array();
+        
+        // Use custom tours if available
+        if(!empty($custom_tours)) {
+            foreach($custom_tours as $custom_tour) {
+                // Convert custom tour to the expected format
+                $tour_data = array(
+                    'name' => $custom_tour['name'],
+                    'description' => $custom_tour['description'],
+                    'days' => $custom_tour['giorni'],
+                    'stops' => count($custom_tour['giorni']),
+                    'totalEntryCost' => $custom_tour['prezzo_base'],
+                    'accommodations' => $accommodations,
+                    'services' => $services,
+                    'pricing' => array(
+                        'standard' => $custom_tour['prezzo_standard_pax'],
+                        'premium' => $custom_tour['prezzo_premium_pax'],
+                        'luxury' => $custom_tour['prezzo_luxury_pax']
+                    ),
+                    'type' => 'custom',
+                    'id' => $custom_tour['id']
+                );
+                $tours[] = $tour_data;
+            }
+        }
+        
+        // If no custom tours found or we want to provide variety, add generated tours as fallbacks
+        if(empty($tours) || count($tours) < 3) {
+            $fallback_tours = array(
+                YHT_Helpers::plan_itinerary('Tour Essenziale', $pool, $days, $per_day, array('trekking'=>1,'passeggiata'=>1,'cultura'=>1,'benessere'=>0.6,'enogastronomia'=>0.8), $accommodations, $services),
+                YHT_Helpers::plan_itinerary('Natura & Borghi', $pool, $days, $per_day, array('trekking'=>1.2,'passeggiata'=>1,'cultura'=>0.6,'benessere'=>0.5,'enogastronomia'=>0.8), $accommodations, $services),
+                YHT_Helpers::plan_itinerary('Arte & Sapori', $pool, $days, $per_day, array('trekking'=>0.5,'passeggiata'=>0.9,'cultura'=>1.3,'benessere'=>0.7,'enogastronomia'=>1.1), $accommodations, $services)
+            );
+            
+            // Add fallback tours to fill up to 3 total tours
+            $needed_fallbacks = 3 - count($tours);
+            for($i = 0; $i < min($needed_fallbacks, count($fallback_tours)); $i++) {
+                $fallback_tours[$i]['type'] = 'generated';
+                $tours[] = $fallback_tours[$i];
+            }
+        }
 
         return rest_ensure_response(array(
             'ok' => true,

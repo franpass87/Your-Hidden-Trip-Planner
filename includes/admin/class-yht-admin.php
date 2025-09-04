@@ -89,6 +89,39 @@ class YHT_Admin {
             'yht_import',
             array($this, 'importer_page')
         );
+        
+        // Add custom post type menu items for easy access
+        add_submenu_page(
+            'yht_admin',
+            'Gestione Luoghi',
+            '📍 Luoghi',
+            'edit_posts',
+            'edit.php?post_type=yht_luogo'
+        );
+        
+        add_submenu_page(
+            'yht_admin',
+            'Gestione Tour',
+            '🗺️ Tour',
+            'edit_posts',
+            'edit.php?post_type=yht_tour'
+        );
+        
+        add_submenu_page(
+            'yht_admin',
+            'Gestione Alloggi',
+            '🏨 Alloggi',
+            'edit_posts',
+            'edit.php?post_type=yht_alloggio'
+        );
+        
+        add_submenu_page(
+            'yht_admin',
+            'Gestione Servizi',
+            '🍽️ Servizi',
+            'edit_posts',
+            'edit.php?post_type=yht_servizio'
+        );
     }
     
     /**

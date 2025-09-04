@@ -15,6 +15,7 @@ class YHT_Post_Types {
         add_action('init', array($this, 'register_meta_fields'));
         add_action('add_meta_boxes', array($this, 'add_meta_boxes'));
         add_action('save_post_yht_luogo', array($this, 'save_luogo_meta'), 10, 1);
+        add_action('save_post_yht_tour', array($this, 'save_tour_meta'), 10, 1);
         add_action('save_post_yht_alloggio', array($this, 'save_alloggio_meta'), 10, 1);
         add_action('save_post_yht_servizio', array($this, 'save_servizio_meta'), 10, 1);
         add_action('save_post_yht_booking', array($this, 'save_booking_meta'), 10, 1);
@@ -171,6 +172,7 @@ class YHT_Post_Types {
      */
     public function add_meta_boxes() {
         add_meta_box('yht_luogo_meta','Dati Luogo', array($this, 'luogo_meta_box'), 'yht_luogo','normal','high');
+        add_meta_box('yht_tour_meta','Configurazione Tour', array($this, 'tour_meta_box'), 'yht_tour','normal','high');
         add_meta_box('yht_alloggio_meta','Prezzi All-Inclusive', array($this, 'alloggio_meta_box'), 'yht_alloggio','normal','high');
         add_meta_box('yht_servizio_meta','Dati Servizio', array($this, 'servizio_meta_box'), 'yht_servizio','normal','high');
         add_meta_box('yht_booking_meta','Dettagli Prenotazione', array($this, 'booking_meta_box'), 'yht_booking','normal','high');
@@ -196,6 +198,106 @@ class YHT_Post_Types {
     }
     
     /**
+     * Tour meta box callback
+     */
+    public function tour_meta_box($post) {
+        wp_nonce_field('yht_save_meta','yht_meta_nonce');
+        
+        $giorni = get_post_meta($post->ID,'yht_giorni',true);
+        $prezzo_base = esc_attr(get_post_meta($post->ID,'yht_prezzo_base',true));
+        $prezzo_standard = esc_attr(get_post_meta($post->ID,'yht_prezzo_standard_pax',true));
+        $prezzo_premium = esc_attr(get_post_meta($post->ID,'yht_prezzo_premium_pax',true));
+        $prezzo_luxury = esc_attr(get_post_meta($post->ID,'yht_prezzo_luxury_pax',true));
+        
+        // Decode giorni JSON or set empty array if invalid
+        if(!$giorni) $giorni = '[]';
+        $giorni_data = json_decode($giorni, true);
+        if(!is_array($giorni_data)) $giorni_data = array();
+        ?>
+        <style>
+            .yht-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+            .yht-grid input[type=text], .yht-grid input[type=number]{width:100%}
+            .yht-full-width{grid-column:1/3}
+            .yht-tour-day{background:#f9f9f9;padding:12px;margin:8px 0;border-radius:6px}
+            .yht-tour-day h4{margin:0 0 8px;color:#333}
+            .yht-tour-day textarea{width:100%;height:60px;resize:vertical}
+        </style>
+        <div class="yht-grid">
+            <div class="yht-full-width"><h3>Configurazione Prezzi</h3></div>
+            <div><label>Prezzo Base (€)</label><input type="number" step="0.01" name="yht_prezzo_base" value="<?php echo $prezzo_base; ?>" placeholder="100.00" /></div>
+            <div><label>Prezzo Standard per Persona (€)</label><input type="number" step="0.01" name="yht_prezzo_standard_pax" value="<?php echo $prezzo_standard; ?>" placeholder="150.00" /></div>
+            <div><label>Prezzo Premium per Persona (€)</label><input type="number" step="0.01" name="yht_prezzo_premium_pax" value="<?php echo $prezzo_premium; ?>" placeholder="195.00" /></div>
+            <div><label>Prezzo Luxury per Persona (€)</label><input type="number" step="0.01" name="yht_prezzo_luxury_pax" value="<?php echo $prezzo_luxury; ?>" placeholder="255.00" /></div>
+            
+            <div class="yht-full-width"><h3>Itinerario Giorni</h3></div>
+            <div class="yht-full-width">
+                <p class="description">Configura l'itinerario giorno per giorno. Il JSON verrà aggiornato automaticamente.</p>
+                <div id="yht-giorni-container">
+                    <?php if(empty($giorni_data)): ?>
+                        <div class="yht-tour-day">
+                            <h4>Giorno 1</h4>
+                            <textarea name="yht_giorno_1" placeholder="Descrizione attività del primo giorno..."></textarea>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach($giorni_data as $index => $giorno): ?>
+                            <div class="yht-tour-day">
+                                <h4>Giorno <?php echo $index + 1; ?></h4>
+                                <textarea name="yht_giorno_<?php echo $index + 1; ?>" placeholder="Descrizione attività..."><?php echo esc_textarea($giorno['description'] ?? ''); ?></textarea>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+                <p>
+                    <button type="button" id="yht-add-day" class="button">+ Aggiungi Giorno</button>
+                    <button type="button" id="yht-remove-day" class="button" <?php echo empty($giorni_data) || count($giorni_data) <= 1 ? 'disabled' : ''; ?>>- Rimuovi Ultimo Giorno</button>
+                </p>
+                <input type="hidden" name="yht_giorni" id="yht_giorni_json" value="<?php echo esc_attr($giorni); ?>" />
+            </div>
+        </div>
+        
+        <script>
+        jQuery(document).ready(function($) {
+            function updateGiorniJSON() {
+                var giorni = [];
+                $('#yht-giorni-container .yht-tour-day').each(function(index) {
+                    var description = $(this).find('textarea').val();
+                    if(description.trim()) {
+                        giorni.push({
+                            day: index + 1,
+                            description: description.trim()
+                        });
+                    }
+                });
+                $('#yht_giorni_json').val(JSON.stringify(giorni));
+            }
+            
+            $('#yht-add-day').click(function() {
+                var dayCount = $('#yht-giorni-container .yht-tour-day').length + 1;
+                var newDay = '<div class="yht-tour-day"><h4>Giorno ' + dayCount + '</h4><textarea name="yht_giorno_' + dayCount + '" placeholder="Descrizione attività..."></textarea></div>';
+                $('#yht-giorni-container').append(newDay);
+                $('#yht-remove-day').prop('disabled', false);
+            });
+            
+            $('#yht-remove-day').click(function() {
+                var days = $('#yht-giorni-container .yht-tour-day');
+                if(days.length > 1) {
+                    days.last().remove();
+                    if(days.length <= 2) {
+                        $(this).prop('disabled', true);
+                    }
+                }
+                updateGiorniJSON();
+            });
+            
+            $(document).on('input', '#yht-giorni-container textarea', function() {
+                updateGiorniJSON();
+            });
+        });
+        </script>
+        <?php
+    }
+    
+    /**
      * Save luogo meta data
      */
     public function save_luogo_meta($post_id) {
@@ -214,6 +316,40 @@ class YHT_Post_Types {
         update_post_meta($post_id,'yht_accesso_family', isset($_POST['yht_accesso_family'])?'1':'');
         update_post_meta($post_id,'yht_accesso_pet', isset($_POST['yht_accesso_pet'])?'1':'');
         update_post_meta($post_id,'yht_accesso_mobility', isset($_POST['yht_accesso_mobility'])?'1':'');
+    }
+    
+    /**
+     * Save tour meta data
+     */
+    public function save_tour_meta($post_id) {
+        if(!isset($_POST['yht_meta_nonce']) || !wp_verify_nonce($_POST['yht_meta_nonce'],'yht_save_meta')) return;
+        if(defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
+        if(!current_user_can('edit_post',$post_id)) return;
+
+        // Save pricing fields
+        $price_fields = array('yht_prezzo_base','yht_prezzo_standard_pax','yht_prezzo_premium_pax','yht_prezzo_luxury_pax');
+        foreach($price_fields as $field) {
+            if(isset($_POST[$field])) {
+                update_post_meta($post_id, $field, sanitize_text_field($_POST[$field]));
+            }
+        }
+        
+        // Process giorni from individual day textareas
+        $giorni_data = array();
+        $day_num = 1;
+        while(isset($_POST['yht_giorno_' . $day_num])) {
+            $description = sanitize_textarea_field($_POST['yht_giorno_' . $day_num]);
+            if(!empty(trim($description))) {
+                $giorni_data[] = array(
+                    'day' => $day_num,
+                    'description' => $description
+                );
+            }
+            $day_num++;
+        }
+        
+        // Save as JSON
+        update_post_meta($post_id, 'yht_giorni', wp_json_encode($giorni_data));
     }
     
     /**
@@ -389,7 +525,7 @@ class YHT_Post_Types {
         }
         
         global $post;
-        if (!$post || !in_array($post->post_type, ['yht_luogo', 'yht_alloggio', 'yht_servizio', 'yht_booking'])) {
+        if (!$post || !in_array($post->post_type, ['yht_luogo', 'yht_tour', 'yht_alloggio', 'yht_servizio', 'yht_booking'])) {
             return;
         }
         
