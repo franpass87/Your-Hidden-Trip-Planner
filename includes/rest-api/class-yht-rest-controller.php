@@ -101,7 +101,7 @@ class YHT_Rest_Controller {
                 $tour_data = array(
                     'name' => $custom_tour['name'],
                     'description' => $custom_tour['description'],
-                    'days' => $custom_tour['days_with_entities'], // Use organized days with entities
+                    'days' => $custom_tour['days_with_entities'], // Use organized days with entities (now includes multiple options)
                     'stops' => count($custom_tour['connected_luoghi']),
                     'totalEntryCost' => $custom_tour['prezzo_base'],
                     'accommodations' => $custom_tour['connected_alloggi'],
@@ -115,12 +115,21 @@ class YHT_Rest_Controller {
                     'id' => $custom_tour['id'],
                     'auto_pricing' => $custom_tour['auto_pricing'],
                     
-                    // Additional metadata for the frontend
+                    // Enhanced metadata for multiple options system
                     'has_real_entities' => true,
+                    'has_multiple_options' => self::has_multiple_options($custom_tour['days_with_entities']),
                     'entity_summary' => array(
                         'luoghi_count' => count($custom_tour['connected_luoghi']),
                         'alloggi_count' => count($custom_tour['connected_alloggi']),
-                        'servizi_count' => count($custom_tour['connected_servizi'])
+                        'servizi_count' => count($custom_tour['connected_servizi']),
+                        'options_summary' => self::calculate_options_summary($custom_tour['days_with_entities'])
+                    ),
+                    
+                    // Multiple options information for overbooking prevention
+                    'overbooking_protection' => array(
+                        'enabled' => true,
+                        'message' => 'Questo tour include opzioni multiple per ogni categoria per evitare problemi di disponibilità',
+                        'average_options_per_day' => self::calculate_average_options($custom_tour['days_with_entities'])
                     )
                 );
                 $tours[] = $tour_data;
@@ -755,5 +764,73 @@ class YHT_Rest_Controller {
     private function get_random_city() {
         $cities = array('Roma', 'Milano', 'Napoli', 'Firenze', 'Bologna', 'Torino', 'Palermo', 'Genova', 'Bari', 'Verona');
         return $cities[array_rand($cities)];
+    }
+    
+    /**
+     * Check if tour has multiple options configured
+     */
+    private static function has_multiple_options($days_with_entities) {
+        foreach($days_with_entities as $day) {
+            if(isset($day['options_summary']['has_multiple_options']) && $day['options_summary']['has_multiple_options']) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    /**
+     * Calculate options summary across all days
+     */
+    private static function calculate_options_summary($days_with_entities) {
+        $total_luoghi_options = 0;
+        $total_alloggi_options = 0;
+        $total_servizi_options = 0;
+        $days_with_multiple = 0;
+        
+        foreach($days_with_entities as $day) {
+            if(isset($day['options_summary'])) {
+                $total_luoghi_options += $day['options_summary']['luoghi_options_count'] ?? 0;
+                $total_alloggi_options += $day['options_summary']['alloggi_options_count'] ?? 0;
+                $total_servizi_options += $day['options_summary']['servizi_options_count'] ?? 0;
+                
+                if($day['options_summary']['has_multiple_options'] ?? false) {
+                    $days_with_multiple++;
+                }
+            }
+        }
+        
+        return array(
+            'total_luoghi_options' => $total_luoghi_options,
+            'total_alloggi_options' => $total_alloggi_options,
+            'total_servizi_options' => $total_servizi_options,
+            'days_with_multiple_options' => $days_with_multiple,
+            'total_days' => count($days_with_entities),
+            'coverage_percentage' => count($days_with_entities) > 0 ? round(($days_with_multiple / count($days_with_entities)) * 100) : 0
+        );
+    }
+    
+    /**
+     * Calculate average number of options per day
+     */
+    private static function calculate_average_options($days_with_entities) {
+        $total_options = 0;
+        $total_categories = 0;
+        
+        foreach($days_with_entities as $day) {
+            if(isset($day['options_summary'])) {
+                $total_options += ($day['options_summary']['luoghi_options_count'] ?? 0);
+                $total_options += ($day['options_summary']['alloggi_options_count'] ?? 0);
+                $total_options += ($day['options_summary']['servizi_options_count'] ?? 0);
+                
+                $categories_with_options = 0;
+                if(($day['options_summary']['luoghi_options_count'] ?? 0) > 0) $categories_with_options++;
+                if(($day['options_summary']['alloggi_options_count'] ?? 0) > 0) $categories_with_options++;
+                if(($day['options_summary']['servizi_options_count'] ?? 0) > 0) $categories_with_options++;
+                
+                $total_categories += $categories_with_options;
+            }
+        }
+        
+        return $total_categories > 0 ? round($total_options / $total_categories, 1) : 0;
     }
 }
