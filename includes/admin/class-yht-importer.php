@@ -180,6 +180,16 @@ class YHT_Importer {
         
         $description = trim($data['descr'] ?? '');
         
+        // Check for existing post with same title (prevent duplicates)
+        $existing_post = get_page_by_title($title, OBJECT, 'yht_' . rtrim($type, 's'));
+        if ($type === 'tours') {
+            $existing_post = get_page_by_title($title, OBJECT, 'yht_tour');
+        }
+        
+        if ($existing_post) {
+            return new WP_Error('duplicate_title', "Post con titolo '$title' già esistente (ID: {$existing_post->ID}).");
+        }
+        
         // Determine post type
         $post_type = 'yht_' . rtrim($type, 's'); // Remove 's' if present
         if ($type === 'tours') {
@@ -194,6 +204,11 @@ class YHT_Importer {
             'post_status'  => 'publish',
             'meta_input'   => array()
         );
+        
+        // Add import metadata
+        $post_data['meta_input']['yht_imported_at'] = current_time('timestamp');
+        $post_data['meta_input']['yht_import_source'] = 'csv_import';
+        $post_data['meta_input']['yht_import_line'] = $line_number;
         
         // Add type-specific processing
         switch ($type) {
@@ -457,15 +472,25 @@ class YHT_Importer {
         check_admin_referer('yht_import');
         
         $query = new WP_Query(array(
-            'post_type' => array('yht_luogo','yht_alloggio'),
+            'post_type' => array('yht_luogo','yht_alloggio','yht_servizio','yht_tour'),
             'posts_per_page' => -1,
-            'no_found_rows' => true
+            'no_found_rows' => true,
+            'meta_query' => array(
+                array(
+                    'key' => '_thumbnail_id',
+                    'compare' => 'NOT EXISTS'
+                )
+            )
         ));
         
         $done = 0;
+        $processed = 0;
+        
         while($query->have_posts()) { 
             $query->the_post();
+            $processed++;
             
+            // Skip if already has featured image
             if(has_post_thumbnail()) continue;
             
             $attachments = get_children(array(
@@ -478,13 +503,15 @@ class YHT_Importer {
             
             if($attachments) { 
                 $attachment = array_shift($attachments); 
-                set_post_thumbnail(get_the_ID(), $attachment->ID); 
-                $done++; 
+                $result = set_post_thumbnail(get_the_ID(), $attachment->ID);
+                if($result) {
+                    $done++; 
+                }
             }
         }
         wp_reset_postdata();
         
-        return "Featured images assegnate: $done";
+        return "Featured images processate: $processed elementi analizzati, $done featured images assegnate.";
     }
     
     /**

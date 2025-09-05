@@ -654,15 +654,106 @@ class YHT_Admin {
     }
     
     /**
-     * Send confirmation email (placeholder for future implementation)
+     * Send confirmation email (implemented)
      */
     private function maybe_send_confirmation_email($booking_id) {
-        // TODO: Implement email sending logic
-        // This could use the existing email templates system
         $customer_email = get_post_meta($booking_id, 'yht_customer_email', true);
-        if ($customer_email) {
-            // For now, just log the action
-            error_log("YHT: Booking $booking_id confirmed, should send email to $customer_email");
+        $customer_name = get_post_meta($booking_id, 'yht_customer_name', true);
+        
+        if (!$customer_email) {
+            return false;
         }
+        
+        // Get booking details
+        $booking_ref = get_post_meta($booking_id, 'yht_booking_reference', true);
+        $travel_date = get_post_meta($booking_id, 'yht_travel_date', true);
+        $num_pax = get_post_meta($booking_id, 'yht_num_pax', true);
+        $total_price = get_post_meta($booking_id, 'yht_total_price', true);
+        $package_type = get_post_meta($booking_id, 'yht_package_type', true);
+        
+        $itinerary = json_decode(get_post_meta($booking_id, 'yht_itinerary_json', true), true);
+        $tour_name = $itinerary['name'] ?? 'Tour personalizzato';
+        
+        // Email subject
+        $subject = sprintf('Prenotazione confermata - %s (Rif. %s)', $tour_name, $booking_ref);
+        
+        // Email content
+        $message = $this->build_confirmation_email_content($customer_name, $booking_ref, $tour_name, $package_type, $travel_date, $num_pax, $total_price);
+        
+        // Email headers
+        $headers = array(
+            'Content-Type: text/html; charset=UTF-8',
+            'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>'
+        );
+        
+        // Send email
+        $sent = wp_mail($customer_email, $subject, $message, $headers);
+        
+        if ($sent) {
+            // Log successful email
+            update_post_meta($booking_id, 'yht_confirmation_email_sent', current_time('timestamp'));
+            error_log("YHT: Confirmation email sent successfully to $customer_email for booking $booking_id");
+        } else {
+            error_log("YHT: Failed to send confirmation email to $customer_email for booking $booking_id");
+        }
+        
+        return $sent;
+    }
+    
+    /**
+     * Build confirmation email content
+     */
+    private function build_confirmation_email_content($customer_name, $booking_ref, $tour_name, $package_type, $travel_date, $num_pax, $total_price) {
+        $site_name = get_bloginfo('name');
+        $site_url = get_home_url();
+        
+        $html = '<html><head><meta charset="UTF-8"></head><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">';
+        
+        $html .= '<div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">';
+        
+        // Header
+        $html .= '<div style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; margin: -20px -20px 20px -20px;">';
+        $html .= '<h1 style="margin: 0; font-size: 24px;">✅ Prenotazione Confermata</h1>';
+        $html .= '<p style="margin: 10px 0 0; opacity: 0.9;">' . esc_html($site_name) . '</p>';
+        $html .= '</div>';
+        
+        // Greeting
+        $html .= '<p>Gentile <strong>' . esc_html($customer_name ?: 'Cliente') . '</strong>,</p>';
+        $html .= '<p>Siamo lieti di confermare la sua prenotazione per il tour <strong>' . esc_html($tour_name) . '</strong>.</p>';
+        
+        // Booking details
+        $html .= '<div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">';
+        $html .= '<h3 style="margin: 0 0 15px; color: #2d3436;">📋 Dettagli della Prenotazione</h3>';
+        $html .= '<table style="width: 100%; border-collapse: collapse;">';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Riferimento:</td><td style="padding: 5px 0;">' . esc_html($booking_ref) . '</td></tr>';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Tour:</td><td style="padding: 5px 0;">' . esc_html($tour_name) . '</td></tr>';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Pacchetto:</td><td style="padding: 5px 0;">' . esc_html(ucfirst($package_type)) . '</td></tr>';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Data partenza:</td><td style="padding: 5px 0;">' . esc_html($travel_date) . '</td></tr>';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Numero viaggiatori:</td><td style="padding: 5px 0;">' . esc_html($num_pax) . '</td></tr>';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Prezzo totale:</td><td style="padding: 5px 0; color: #00b894; font-weight: bold;">€' . esc_html($total_price) . '</td></tr>';
+        $html .= '</table>';
+        $html .= '</div>';
+        
+        // Next steps
+        $html .= '<div style="background: #e7f3ff; padding: 15px; border-radius: 6px; margin: 20px 0;">';
+        $html .= '<h3 style="margin: 0 0 10px; color: #0984e3;">🎯 Prossimi Passi</h3>';
+        $html .= '<ul style="margin: 0; padding-left: 20px;">';
+        $html .= '<li>Riceverà a breve l\'itinerario dettagliato del tour</li>';
+        $html .= '<li>Il nostro team la contatterà per finalizzare i dettagli</li>';
+        $html .= '<li>Conservi questo riferimento per qualsiasi comunicazione: <strong>' . esc_html($booking_ref) . '</strong></li>';
+        $html .= '</ul>';
+        $html .= '</div>';
+        
+        // Contact info
+        $html .= '<div style="border-top: 1px solid #ddd; padding-top: 15px; margin-top: 20px; text-align: center; color: #666;">';
+        $html .= '<p>Per qualsiasi domanda, non esiti a contattarci:</p>';
+        $html .= '<p><strong>' . esc_html($site_name) . '</strong><br>';
+        $html .= 'Email: <a href="mailto:' . get_option('admin_email') . '">' . get_option('admin_email') . '</a><br>';
+        $html .= 'Web: <a href="' . esc_url($site_url) . '">' . esc_url($site_url) . '</a></p>';
+        $html .= '</div>';
+        
+        $html .= '</div></body></html>';
+        
+        return $html;
     }
 }
