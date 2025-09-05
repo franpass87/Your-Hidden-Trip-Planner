@@ -6,6 +6,17 @@
 class YHTEnhancer {
     constructor() {
         this.audioEnabled = false; // Initialize audio support
+        this.currentStep = 1;
+        this.maxSteps = 6;
+        this.state = {
+            esperienza: '',
+            destinazione: '',
+            attivita: [],
+            alloggio: '',
+            durata: '',
+            startdate: '',
+            pax: 2
+        };
         this.init();
     }
 
@@ -19,6 +30,9 @@ class YHTEnhancer {
         this.setupKeyboardNavigation();
         this.setupProgressiveEnhancement();
         this.setupNotifications();
+        this.setupStepNavigation();
+        this.initWishlist();
+        this.initShareButtons();
     }
 
     // Dark/Light Theme Toggle
@@ -418,11 +432,384 @@ class YHTEnhancer {
         return notification;
     }
 
+    // Step Navigation System
+    setupStepNavigation() {
+        // Setup card interactions
+        this.setupCardInteractions();
+        
+        // Setup navigation button handlers
+        document.querySelectorAll('[data-next]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const step = parseInt(btn.dataset.next);
+                if (this.validateStep(step)) {
+                    this.goToStep(step + 1);
+                }
+            });
+        });
+
+        document.querySelectorAll('[data-prev]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const step = parseInt(btn.dataset.prev);
+                this.goToStep(step - 1);
+            });
+        });
+
+        // Setup form field handlers
+        const startDateInput = document.getElementById('yht-startdate');
+        const paxInput = document.getElementById('yht-pax');
+        
+        if (startDateInput) {
+            startDateInput.addEventListener('change', (e) => {
+                this.state.startdate = e.target.value;
+                this.updateButtonStates();
+            });
+        }
+
+        if (paxInput) {
+            paxInput.addEventListener('change', (e) => {
+                this.state.pax = parseInt(e.target.value) || 2;
+                this.updateButtonStates();
+            });
+        }
+
+        // Setup step direct navigation
+        document.querySelectorAll('.yht-step').forEach(step => {
+            step.addEventListener('click', (e) => {
+                const stepNum = parseInt(step.dataset.step);
+                if (stepNum <= this.currentStep || step.getAttribute('data-done') === 'true') {
+                    this.goToStep(stepNum);
+                }
+            });
+        });
+    }
+
+    setupCardInteractions() {
+        document.querySelectorAll('.yht-card').forEach(card => {
+            card.addEventListener('click', () => this.handleCardClick(card));
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.handleCardClick(card);
+                }
+            });
+        });
+    }
+
+    handleCardClick(card) {
+        const group = card.dataset.group;
+        const value = card.dataset.value;
+        const isCheckbox = card.getAttribute('role') === 'checkbox';
+
+        if (isCheckbox) {
+            // Multiple selection (checkbox behavior)
+            const isSelected = card.dataset.selected === 'true';
+            card.dataset.selected = !isSelected;
+            card.setAttribute('aria-checked', !isSelected);
+            
+            if (!Array.isArray(this.state[group])) {
+                this.state[group] = [];
+            }
+            
+            if (!isSelected) {
+                this.state[group].push(value);
+            } else {
+                this.state[group] = this.state[group].filter(v => v !== value);
+            }
+        } else {
+            // Single selection (radio behavior)
+            document.querySelectorAll(`[data-group="${group}"]`).forEach(el => {
+                el.dataset.selected = 'false';
+                el.setAttribute('aria-checked', 'false');
+            });
+            card.dataset.selected = 'true';
+            card.setAttribute('aria-checked', 'true');
+            this.state[group] = value;
+        }
+
+        this.updateButtonStates();
+        this.updateSummaryPreview();
+    }
+
+    validateStep(step) {
+        const errorEl = document.getElementById(`yht-err${step}`);
+        let isValid = true;
+        let errorMessage = '';
+
+        switch (step) {
+            case 1:
+                isValid = !!this.state.esperienza;
+                errorMessage = 'Seleziona almeno un tipo di esperienza.';
+                break;
+            case 2:
+                isValid = !!this.state.destinazione;
+                errorMessage = 'Seleziona una destinazione.';
+                break;
+            case 3:
+                isValid = Array.isArray(this.state.attivita) && this.state.attivita.length > 0;
+                errorMessage = 'Seleziona almeno una attività.';
+                break;
+            case 4:
+                isValid = !!this.state.alloggio;
+                errorMessage = 'Seleziona un tipo di alloggio.';
+                break;
+            case 5:
+                isValid = !!this.state.durata && !!this.state.startdate;
+                errorMessage = 'Seleziona la durata del viaggio e la data di partenza.';
+                break;
+        }
+
+        if (errorEl) {
+            errorEl.setAttribute('data-show', !isValid);
+            if (!isValid && errorMessage) {
+                errorEl.textContent = errorMessage;
+            }
+        }
+
+        return isValid;
+    }
+
+    goToStep(step) {
+        if (step < 1 || step > this.maxSteps) return;
+
+        // Hide all steps
+        document.querySelectorAll('.yht-stepview').forEach(view => {
+            view.setAttribute('data-show', 'false');
+            view.style.display = 'none';
+        });
+
+        // Show target step
+        const targetStep = document.getElementById(`yht-step${step}`);
+        if (targetStep) {
+            targetStep.setAttribute('data-show', 'true');
+            targetStep.style.display = 'block';
+        }
+
+        // Update step indicators and progress
+        this.updateStepIndicators(step);
+        this.updateProgress(step, this.maxSteps);
+        
+        this.currentStep = step;
+
+        // Special actions for specific steps
+        if (step === 6) {
+            this.generateSummary();
+        }
+
+        // Scroll to top smoothly
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // Update button states
+        this.updateButtonStates();
+    }
+
+    updateStepIndicators(step) {
+        document.querySelectorAll('.yht-step').forEach((stepEl, index) => {
+            const stepNum = index + 1;
+            const lineEl = stepEl.parentNode.nextElementSibling;
+
+            if (stepNum < step) {
+                stepEl.setAttribute('data-done', 'true');
+                stepEl.setAttribute('data-active', 'false');
+                if (lineEl && lineEl.classList.contains('yht-line')) {
+                    const progressLine = lineEl.querySelector('i');
+                    if (progressLine) progressLine.style.width = '100%';
+                }
+            } else if (stepNum === step) {
+                stepEl.setAttribute('data-active', 'true');
+                stepEl.setAttribute('data-done', 'false');
+                if (lineEl && lineEl.classList.contains('yht-line')) {
+                    const progressLine = lineEl.querySelector('i');
+                    if (progressLine) progressLine.style.width = '0%';
+                }
+            } else {
+                stepEl.setAttribute('data-active', 'false');
+                stepEl.setAttribute('data-done', 'false');
+                if (lineEl && lineEl.classList.contains('yht-line')) {
+                    const progressLine = lineEl.querySelector('i');
+                    if (progressLine) progressLine.style.width = '0%';
+                }
+            }
+        });
+    }
+
+    updateButtonStates() {
+        // Update next buttons based on current step validation
+        document.querySelectorAll('[data-next]').forEach(btn => {
+            const step = parseInt(btn.dataset.next);
+            btn.disabled = !this.validateStep(step);
+        });
+    }
+
+    generateSummary() {
+        const summaryEl = document.querySelector('#yht-summary .summary-content');
+        if (!summaryEl) return;
+
+        let summaryHTML = '<div class="summary-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">';
+        
+        if (this.state.esperienza) {
+            summaryHTML += `
+                <div class="summary-item" style="padding: 12px; border: 1px solid var(--line); border-radius: 8px;">
+                    <strong>🎯 Esperienza:</strong><br>
+                    <span style="color: var(--primary);">${this.getExperienceLabel(this.state.esperienza)}</span>
+                </div>
+            `;
+        }
+        
+        if (this.state.destinazione) {
+            summaryHTML += `
+                <div class="summary-item" style="padding: 12px; border: 1px solid var(--line); border-radius: 8px;">
+                    <strong>📍 Destinazione:</strong><br>
+                    <span style="color: var(--primary);">${this.getDestinationLabel(this.state.destinazione)}</span>
+                </div>
+            `;
+        }
+        
+        if (this.state.attivita && this.state.attivita.length > 0) {
+            summaryHTML += `
+                <div class="summary-item" style="padding: 12px; border: 1px solid var(--line); border-radius: 8px;">
+                    <strong>🎪 Attività:</strong><br>
+                    <span style="color: var(--primary);">${this.state.attivita.map(a => this.getActivityLabel(a)).join(', ')}</span>
+                </div>
+            `;
+        }
+        
+        if (this.state.alloggio) {
+            summaryHTML += `
+                <div class="summary-item" style="padding: 12px; border: 1px solid var(--line); border-radius: 8px;">
+                    <strong>🏨 Alloggio:</strong><br>
+                    <span style="color: var(--primary);">${this.getAccommodationLabel(this.state.alloggio)}</span>
+                </div>
+            `;
+        }
+        
+        if (this.state.durata) {
+            summaryHTML += `
+                <div class="summary-item" style="padding: 12px; border: 1px solid var(--line); border-radius: 8px;">
+                    <strong>📅 Durata:</strong><br>
+                    <span style="color: var(--primary);">${this.getDurationLabel(this.state.durata)}</span>
+                </div>
+            `;
+        }
+        
+        if (this.state.startdate) {
+            const date = new Date(this.state.startdate);
+            summaryHTML += `
+                <div class="summary-item" style="padding: 12px; border: 1px solid var(--line); border-radius: 8px;">
+                    <strong>🚀 Partenza:</strong><br>
+                    <span style="color: var(--primary);">${date.toLocaleDateString('it-IT')}</span>
+                </div>
+            `;
+        }
+        
+        summaryHTML += `
+            <div class="summary-item" style="padding: 12px; border: 1px solid var(--line); border-radius: 8px;">
+                <strong>👥 Persone:</strong><br>
+                <span style="color: var(--primary);">${this.state.pax}</span>
+            </div>
+        `;
+        
+        summaryHTML += '</div>';
+        
+        summaryEl.innerHTML = summaryHTML;
+        
+        // Enable booking button if summary is complete
+        const bookBtn = document.getElementById('yht-book-now');
+        if (bookBtn) {
+            const isComplete = this.state.esperienza && this.state.destinazione && 
+                             this.state.attivita.length > 0 && this.state.alloggio && 
+                             this.state.durata && this.state.startdate;
+            bookBtn.disabled = !isComplete;
+        }
+    }
+
+    // Helper methods for labels
+    getExperienceLabel(value) {
+        const labels = {
+            'enogastronomica': 'Enogastronomica',
+            'storico_culturale': 'Storico-Culturale',
+            'natura_relax': 'Natura e Relax',
+            'avventura': 'Avventura Outdoor',
+            'romantica': 'Romantica',
+            'famiglia': 'Famiglia'
+        };
+        return labels[value] || value;
+    }
+
+    getDestinationLabel(value) {
+        const labels = {
+            'viterbo_tuscia': 'Viterbo e Alta Tuscia',
+            'lago_bolsena': 'Lago di Bolsena',
+            'orvieto_umbria': 'Orvieto e Umbria Sud',
+            'todi_spoleto': 'Todi e Spoleto',
+            'assisi_perugia': 'Assisi e Perugia',
+            'mix_personalizzato': 'Mix Personalizzato'
+        };
+        return labels[value] || value;
+    }
+
+    getActivityLabel(value) {
+        const labels = {
+            'enogastronomia': 'Enogastronomia',
+            'cultura': 'Cultura',
+            'natura': 'Natura',
+            'benessere': 'Benessere',
+            'avventura': 'Avventura',
+            'shopping': 'Shopping'
+        };
+        return labels[value] || value;
+    }
+
+    getAccommodationLabel(value) {
+        const labels = {
+            'hotel': 'Hotel',
+            'agriturismo': 'Agriturismo',
+            'bb': 'B&B',
+            'resort': 'Resort & Spa',
+            'villa': 'Villa Storica',
+            'mix': 'Mix Personalizzato'
+        };
+        return labels[value] || value;
+    }
+
+    getDurationLabel(value) {
+        const labels = {
+            '1_notte': '1 Notte',
+            '2_notti': '2 Notti',
+            '3_notti': '3 Notti',
+            '4_notti': '4 Notti',
+            '5_notti': '5 Notti',
+            'personalizzata': 'Personalizzata'
+        };
+        return labels[value] || value;
+    }
+
+    updateSummaryPreview() {
+        const previewEl = document.getElementById('yht-summary-preview');
+        if (!previewEl) return;
+
+        if (Object.values(this.state).some(v => v && (Array.isArray(v) ? v.length > 0 : true))) {
+            const contentEl = previewEl.querySelector('.summary-content');
+            if (contentEl) {
+                let content = '<div style="font-size: 0.9rem;">';
+                if (this.state.esperienza) content += `🎯 ${this.getExperienceLabel(this.state.esperienza)}<br>`;
+                if (this.state.destinazione) content += `📍 ${this.getDestinationLabel(this.state.destinazione)}<br>`;
+                if (this.state.attivita.length > 0) content += `🎪 ${this.state.attivita.length} attività<br>`;
+                content += '</div>';
+                contentEl.innerHTML = content;
+            }
+            previewEl.style.display = 'block';
+        } else {
+            previewEl.style.display = 'none';
+        }
+    }
+
     // Utility methods for external use
     updateProgress(step, totalSteps) {
         const progressBar = document.querySelector('.yht-progressbar > i');
         if (progressBar) {
-            const percentage = (step / totalSteps) * 100;
+            const percentage = ((step - 1) / (totalSteps - 1)) * 100;
             progressBar.style.width = `${percentage}%`;
         }
     }
