@@ -1,8 +1,24 @@
 {
   "name": "your-hidden-trip-planner",
-  "version": "1.0.0",
+  "version": "6.3.0",
   "private": true,
+  "description": "Advanced WordPress plugin for trip planning with PDF generation, analytics, and AI features",
   "scripts": {
-    "test": "echo 'No tests configured'"
+    "test": "vendor/bin/phpunit --configuration phpunit.xml",
+    "test:unit": "vendor/bin/phpunit --configuration phpunit.xml --testsuite unit",
+    "test:integration": "vendor/bin/phpunit --configuration phpunit.xml --testsuite integration",
+    "test:coverage": "vendor/bin/phpunit --configuration phpunit.xml --coverage-html tests/coverage",
+    "lint:php": "php -l your-hidden-trip-planner.php && find includes -name '*.php' -exec php -l {} \\;",
+    "build": "echo 'Building plugin...' && npm run lint:php",
+    "watch": "echo 'Watching for changes...'",
+    "dev": "echo 'Development mode started'"
+  },
+  "keywords": ["wordpress", "plugin", "travel", "trip-planner", "ai", "analytics"],
+  "author": "YourHiddenTrip",
+  "license": "GPL-2.0-or-later",
+  "devDependencies": {},
+  "engines": {
+    "node": ">=14.0.0",
+    "php": ">=7.4"
   }
 }

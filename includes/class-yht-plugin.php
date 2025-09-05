@@ -69,6 +69,7 @@ class YHT_Plugin {
                 'includes/utilities/',
                 'includes/analytics/',
                 'includes/security/',
+                'includes/seo/',
                 'includes/pdf/',
             );
 
@@ -165,6 +166,7 @@ class YHT_Plugin {
         $this->load_utilities();
         $this->load_analytics();
         $this->load_security();
+        $this->load_seo();
     }
     
     /**
@@ -227,6 +229,9 @@ class YHT_Plugin {
         // Load availability tracker
         new YHT_Availability_Tracker();
         
+        // Load enhanced logger
+        YHT_Logger::get_instance();
+        
         // Utility classes are loaded on demand via autoloader
     }
     
@@ -235,6 +240,9 @@ class YHT_Plugin {
      */
     private function load_analytics() {
         new YHT_Analytics();
+        
+        // Load Google Analytics 4 integration
+        new YHT_Google_Analytics_4();
     }
     
     /**
@@ -242,6 +250,15 @@ class YHT_Plugin {
      */
     private function load_security() {
         new YHT_Security();
+        // Load enhanced security headers
+        new YHT_Security_Headers();
+    }
+    
+    /**
+     * Load SEO module
+     */
+    private function load_seo() {
+        new YHT_SEO_Manager();
     }
 
     /**
