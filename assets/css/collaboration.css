@@ -1,0 +1,662 @@
+/**
+ * Real-time Collaboration Styles
+ * 
+ * @package YourHiddenTrip
+ * @version 6.3.0
+ */
+
+/* Collaboration Bar */
+.yht-collaboration-bar {
+    position: fixed;
+    top: 32px; /* Below WordPress admin bar */
+    left: 0;
+    right: 0;
+    z-index: 9998;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.collaboration-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ff4444;
+    position: relative;
+}
+
+.status-indicator.connected {
+    background: #44ff44;
+    animation: pulse 2s infinite;
+}
+
+.status-indicator.connecting,
+.status-indicator.reconnecting {
+    background: #ffaa44;
+    animation: blink 1s infinite;
+}
+
+.status-indicator.error,
+.status-indicator.disconnected {
+    background: #ff4444;
+}
+
+.status-text {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.collaboration-participants {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    max-width: 400px;
+}
+
+.participants-list {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    max-width: 300px;
+}
+
+.participant {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 4px 8px;
+    border-radius: 16px;
+    white-space: nowrap;
+    min-width: fit-content;
+}
+
+.participant-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.participant-name {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.participant-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff4444;
+}
+
+.participant-status.active {
+    background: #44ff44;
+}
+
+.collaboration-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.collaboration-controls button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    position: relative;
+}
+
+.collaboration-controls button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.collaboration-controls .icon {
+    font-size: 16px;
+}
+
+.chat-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ff4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 11px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Collaboration Prompt */
+.yht-collaboration-prompt {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    animation: slideDown 0.3s ease-out;
+}
+
+.prompt-content h3 {
+    margin: 0 0 8px 0;
+    color: #333;
+    font-size: 18px;
+}
+
+.prompt-content p {
+    margin: 0 0 16px 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.prompt-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.prompt-actions button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background: #667eea;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #5a67d8;
+}
+
+.btn-secondary {
+    background: #f7fafc;
+    color: #4a5568;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+    background: #edf2f7;
+}
+
+/* Chat Panel */
+.yht-chat-panel {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    width: 320px;
+    height: 400px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    z-index: 9999;
+    border: 1px solid #e0e0e0;
+}
+
+.chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #667eea;
+    color: white;
+    border-radius: 12px 12px 0 0;
+}
+
+.chat-header h3 {
+    margin: 0;
+    font-size: 16px;
+}
+
+.chat-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.chat-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-message {
+    display: flex;
+    gap: 8px;
+    animation: slideIn 0.3s ease-out;
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.message-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.message-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.message-author {
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+}
+
+.message-time {
+    font-size: 11px;
+    color: #999;
+}
+
+.message-text {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.chat-form {
+    display: flex;
+    gap: 8px;
+    padding: 16px;
+    border-top: 1px solid #e0e0e0;
+    background: #f9f9f9;
+    border-radius: 0 0 12px 12px;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    font-size: 14px;
+    outline: none;
+}
+
+.chat-input:focus {
+    border-color: #667eea;
+}
+
+.chat-send {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.chat-send:hover {
+    background: #5a67d8;
+}
+
+/* Collaboration Cursors */
+.yht-collaboration-area {
+    position: relative;
+}
+
+.collaboration-cursor {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1000;
+    transition: all 0.1s ease;
+}
+
+.cursor-pointer {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 12px solid #667eea;
+    transform: rotate(-45deg);
+}
+
+.cursor-label {
+    background: #667eea;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    margin-top: 4px;
+    margin-left: 8px;
+}
+
+/* Trip editing highlights */
+.highlight-new {
+    animation: highlightNew 2s ease-out;
+}
+
+.highlight-updated {
+    animation: highlightUpdated 1s ease-out;
+}
+
+.removing {
+    animation: fadeOut 0.3s ease-out;
+}
+
+/* Loading overlay */
+.yht-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-content {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 300px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f0f0f0;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+}
+
+.loading-message {
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+}
+
+/* Notifications */
+.yht-collaboration-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10001;
+    max-width: 300px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.yht-collaboration-notification.show {
+    transform: translateX(0);
+}
+
+.yht-collaboration-notification.success {
+    background: #48bb78;
+}
+
+.yht-collaboration-notification.error {
+    background: #f56565;
+}
+
+.yht-collaboration-notification.info {
+    background: #4299e1;
+}
+
+.yht-collaboration-notification.warning {
+    background: #ed8936;
+}
+
+.yht-collaboration-notification .close {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0;
+    opacity: 0.8;
+}
+
+.yht-collaboration-notification .close:hover {
+    opacity: 1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .yht-collaboration-bar {
+        top: 46px; /* Adjust for mobile admin bar */
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px 16px;
+    }
+
+    .collaboration-participants {
+        max-width: none;
+        justify-content: center;
+    }
+
+    .participants-list {
+        max-width: none;
+        justify-content: center;
+    }
+
+    .yht-chat-panel {
+        right: 10px;
+        bottom: 10px;
+        left: 10px;
+        width: auto;
+        height: 300px;
+    }
+
+    .collaboration-controls {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .prompt-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .prompt-actions button {
+        width: 100%;
+        max-width: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .yht-collaboration-bar {
+        top: 46px;
+    }
+
+    .participant-name {
+        display: none; /* Hide names on very small screens */
+    }
+
+    .collaboration-controls button {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+
+    .collaboration-controls .icon {
+        font-size: 14px;
+    }
+}
+
+/* Animations */
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.3; }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes highlightNew {
+    0% { background-color: rgba(72, 187, 120, 0.3); }
+    100% { background-color: transparent; }
+}
+
+@keyframes highlightUpdated {
+    0% { background-color: rgba(66, 153, 225, 0.3); }
+    100% { background-color: transparent; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .yht-collaboration-prompt {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+
+    .prompt-content h3 {
+        color: #e2e8f0;
+    }
+
+    .prompt-content p {
+        color: #a0aec0;
+    }
+
+    .yht-chat-panel {
+        background: #2d3748;
+        border-color: #4a5568;
+    }
+
+    .chat-messages {
+        background: #2d3748;
+    }
+
+    .message-author {
+        color: #e2e8f0;
+    }
+
+    .message-text {
+        color: #cbd5e0;
+    }
+
+    .chat-form {
+        background: #1a202c;
+        border-color: #4a5568;
+    }
+
+    .chat-input {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+
+    .loading-content {
+        background: #2d3748;
+        color: #e2e8f0;
+    }
+}
+
+/* Print styles */
+@media print {
+    .yht-collaboration-bar,
+    .yht-chat-panel,
+    .collaboration-cursor,
+    .yht-collaboration-notification,
+    .yht-loading-overlay {
+        display: none !important;
+    }
+}
