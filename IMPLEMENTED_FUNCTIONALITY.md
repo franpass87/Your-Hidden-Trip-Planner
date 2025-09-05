@@ -55,6 +55,24 @@ This document summarizes the missing functionality that has been successfully im
 - ✅ Extended post type support (luoghi, alloggi, servizi, tours)
 - ✅ Better filtering and error reporting
 
+### 5. User Role Management System
+**Location**: `includes/admin/class-yht-user-roles.php`
+
+**Implemented Features**:
+- ✅ Custom role creation and management
+- ✅ Role-based permission system with granular capabilities
+- ✅ User assignment visualization and management
+- ✅ Role template system with predefined permission sets
+- ✅ Bulk permission management (select all/deselect all)
+- ✅ Role deletion for custom roles only
+- ✅ Permission inheritance and capability management
+
+**Available Role Templates**:
+- **Guida Turistica**: Booking viewing, customer management, destination access
+- **Manager**: Full access to reports, analytics, booking management
+- **Customer Service**: Client management, booking support, communications
+- **Contabile**: Financial reports, payment management access
+
 ## 🔧 Technical Details
 
 ### Security Features
@@ -123,6 +141,13 @@ title,descr,prezzo_base,giorni_json
 3. Click "✅ Conferma Selezionate" for bulk confirmation
 4. Click "📥 Esporta CSV" to download booking data
 
+### User Role Management
+1. Go to **YHT Admin → 👥 Ruoli Utente**
+2. Create new custom roles with specific permissions
+3. Use predefined templates for common roles (Guida, Manager, Customer Service, Contabile)
+4. Assign permissions per category: Dashboard, Prenotazioni, Clienti, Report, Configurazione
+5. Manage user assignments and view role statistics
+
 ### Featured Image Assignment
 1. Go to **YHT Admin → 📥 Importer CSV**
 2. Click "Assegna featured dal primo media" in Utility section
@@ -136,6 +161,8 @@ All functionality has been thoroughly tested with:
 - ✅ Security validation tests
 - ✅ Email template tests
 - ✅ File processing tests
+- ✅ Role permission system tests
+- ✅ Template creation functionality tests
 
 ## 📈 Benefits
 1. **Efficiency**: Bulk import/export capabilities reduce manual work
@@ -144,6 +171,8 @@ All functionality has been thoroughly tested with:
 4. **User Experience**: AJAX operations provide immediate feedback
 5. **Data Integrity**: Duplicate prevention and validation ensure clean data
 6. **Professional Communication**: Automated email confirmations improve customer experience
+7. **Role-Based Access**: Granular permission system enables secure team collaboration
+8. **Scalability**: Template-based role creation facilitates quick team setup
 
 ## 🔮 Future Enhancements
 While all core missing functionality has been implemented, potential future improvements could include:
@@ -152,3 +181,5 @@ While all core missing functionality has been implemented, potential future impr
 - Email template customization interface
 - Automated backup before imports
 - Integration with external booking systems
+- Advanced role permission inheritance
+- Role permission templates for specific business workflows
