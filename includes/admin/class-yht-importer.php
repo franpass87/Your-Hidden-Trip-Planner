@@ -57,17 +57,412 @@ class YHT_Importer {
             return 'File CSV non leggibile.';
         }
         
-        // TODO: Implement full CSV import functionality
-        // This should include:
-        // - CSV parsing with proper error handling
-        // - Validation of required fields based on $type (luoghi, alloggi, servizi, tours)
-        // - Creating/updating WordPress posts of the appropriate post type
-        // - Handling taxonomies (esperienze, aree, etc.)
-        // - Processing meta fields (coordinates, pricing, services, etc.)
-        // - Bulk processing with progress feedback
-        // - Rollback capability in case of errors
+        // Set time limit for large imports
+        set_time_limit(300);
         
-        return 'Import funzionalità non ancora implementata nella versione refactored. Contattare lo sviluppatore per il porting completo.';
+        return $this->import_csv_data($file_path, $type);
+    }
+    
+    /**
+     * Import CSV data with full implementation
+     */
+    private function import_csv_data($file_path, $type) {
+        $imported = 0;
+        $errors = array();
+        $created_posts = array(); // For rollback capability
+        
+        try {
+            // Open and parse CSV
+            $handle = fopen($file_path, 'r');
+            if (!$handle) {
+                return 'Impossibile aprire il file CSV.';
+            }
+            
+            // Get headers from first row
+            $headers = fgetcsv($handle);
+            if (!$headers) {
+                fclose($handle);
+                return 'File CSV vuoto o formato non valido.';
+            }
+            
+            // Validate headers based on type
+            $required_headers = $this->get_required_headers($type);
+            $missing_headers = array_diff($required_headers, $headers);
+            if (!empty($missing_headers)) {
+                fclose($handle);
+                return 'Colonne mancanti nel CSV: ' . implode(', ', $missing_headers);
+            }
+            
+            $line_number = 1; // Start from 1 (header row)
+            
+            // Process each row
+            while (($row = fgetcsv($handle)) !== FALSE) {
+                $line_number++;
+                
+                // Skip empty rows
+                if (empty(array_filter($row))) {
+                    continue;
+                }
+                
+                // Combine headers with row data
+                if (count($row) !== count($headers)) {
+                    $errors[] = "Riga $line_number: numero di colonne non corrispondente.";
+                    continue;
+                }
+                
+                $data = array_combine($headers, $row);
+                
+                // Process this row
+                $result = $this->import_single_row($data, $type, $line_number);
+                if (is_wp_error($result)) {
+                    $errors[] = "Riga $line_number: " . $result->get_error_message();
+                } else {
+                    $imported++;
+                    $created_posts[] = $result;
+                }
+                
+                // Stop if too many errors
+                if (count($errors) > 10) {
+                    $errors[] = "Troppi errori, importazione interrotta.";
+                    break;
+                }
+            }
+            
+            fclose($handle);
+            
+            // Prepare result message
+            $message = "Importazione completata: $imported elementi importati.";
+            if (!empty($errors)) {
+                $message .= " Errori riscontrati:\n" . implode("\n", array_slice($errors, 0, 5));
+                if (count($errors) > 5) {
+                    $message .= "\n...e altri " . (count($errors) - 5) . " errori.";
+                }
+            }
+            
+            return $message;
+            
+        } catch (Exception $e) {
+            // Rollback created posts on fatal error
+            foreach ($created_posts as $post_id) {
+                wp_delete_post($post_id, true);
+            }
+            return 'Errore fatale durante l\'importazione: ' . $e->getMessage();
+        }
+    }
+    
+    /**
+     * Get required headers for each import type
+     */
+    private function get_required_headers($type) {
+        switch ($type) {
+            case 'luoghi':
+                return array('title', 'descr', 'lat', 'lng');
+            case 'alloggi':
+                return array('title', 'descr', 'lat', 'lng');
+            case 'servizi':
+                return array('title', 'descr', 'lat', 'lng', 'tipo_servizio');
+            case 'tours':
+                return array('title', 'descr', 'prezzo_base');
+            default:
+                return array('title', 'descr');
+        }
+    }
+    
+    /**
+     * Import a single row of data
+     */
+    private function import_single_row($data, $type, $line_number) {
+        // Validate required fields
+        $title = trim($data['title'] ?? '');
+        if (empty($title)) {
+            return new WP_Error('missing_title', 'Titolo mancante.');
+        }
+        
+        $description = trim($data['descr'] ?? '');
+        
+        // Check for existing post with same title (prevent duplicates)
+        $existing_post = get_page_by_title($title, OBJECT, 'yht_' . rtrim($type, 's'));
+        if ($type === 'tours') {
+            $existing_post = get_page_by_title($title, OBJECT, 'yht_tour');
+        }
+        
+        if ($existing_post) {
+            return new WP_Error('duplicate_title', "Post con titolo '$title' già esistente (ID: {$existing_post->ID}).");
+        }
+        
+        // Determine post type
+        $post_type = 'yht_' . rtrim($type, 's'); // Remove 's' if present
+        if ($type === 'tours') {
+            $post_type = 'yht_tour';
+        }
+        
+        // Create the post
+        $post_data = array(
+            'post_title'   => sanitize_text_field($title),
+            'post_content' => sanitize_textarea_field($description),
+            'post_type'    => $post_type,
+            'post_status'  => 'publish',
+            'meta_input'   => array()
+        );
+        
+        // Add import metadata
+        $post_data['meta_input']['yht_imported_at'] = current_time('timestamp');
+        $post_data['meta_input']['yht_import_source'] = 'csv_import';
+        $post_data['meta_input']['yht_import_line'] = $line_number;
+        
+        // Add type-specific processing
+        switch ($type) {
+            case 'luoghi':
+                $result = $this->process_luoghi_data($post_data, $data);
+                break;
+            case 'alloggi':
+                $result = $this->process_alloggi_data($post_data, $data);
+                break;
+            case 'servizi':
+                $result = $this->process_servizi_data($post_data, $data);
+                break;
+            case 'tours':
+                $result = $this->process_tours_data($post_data, $data);
+                break;
+            default:
+                return new WP_Error('invalid_type', 'Tipo di importazione non valido.');
+        }
+        
+        if (is_wp_error($result)) {
+            return $result;
+        }
+        
+        $post_data = $result;
+        
+        // Insert the post
+        $post_id = wp_insert_post($post_data);
+        if (is_wp_error($post_id)) {
+            return $post_id;
+        }
+        
+        // Process taxonomies after post creation
+        $this->process_taxonomies($post_id, $data, $type);
+        
+        return $post_id;
+    }
+    
+    /**
+     * Process luoghi-specific data
+     */
+    private function process_luoghi_data($post_data, $data) {
+        // Validate coordinates
+        $lat = $this->validate_coordinate($data['lat'] ?? '', 'latitudine');
+        $lng = $this->validate_coordinate($data['lng'] ?? '', 'longitudine');
+        
+        if (is_wp_error($lat)) return $lat;
+        if (is_wp_error($lng)) return $lng;
+        
+        $post_data['meta_input']['yht_lat'] = $lat;
+        $post_data['meta_input']['yht_lng'] = $lng;
+        
+        // Optional fields
+        if (!empty($data['costo_ingresso'])) {
+            $cost = floatval($data['costo_ingresso']);
+            if ($cost >= 0) {
+                $post_data['meta_input']['yht_cost_ingresso'] = $cost;
+            }
+        }
+        
+        if (!empty($data['durata_min'])) {
+            $duration = intval($data['durata_min']);
+            if ($duration > 0) {
+                $post_data['meta_input']['yht_durata_min'] = $duration;
+            }
+        }
+        
+        // Boolean accessibility fields
+        $post_data['meta_input']['yht_accesso_family'] = $this->parse_boolean($data['family'] ?? '');
+        $post_data['meta_input']['yht_accesso_pet'] = $this->parse_boolean($data['pet'] ?? '');
+        $post_data['meta_input']['yht_accesso_mobility'] = $this->parse_boolean($data['mobility'] ?? '');
+        
+        return $post_data;
+    }
+    
+    /**
+     * Process alloggi-specific data
+     */
+    private function process_alloggi_data($post_data, $data) {
+        // Validate coordinates
+        $lat = $this->validate_coordinate($data['lat'] ?? '', 'latitudine');
+        $lng = $this->validate_coordinate($data['lng'] ?? '', 'longitudine');
+        
+        if (is_wp_error($lat)) return $lat;
+        if (is_wp_error($lng)) return $lng;
+        
+        $post_data['meta_input']['yht_lat'] = $lat;
+        $post_data['meta_input']['yht_lng'] = $lng;
+        
+        // Optional fields
+        if (!empty($data['fascia_prezzo'])) {
+            $post_data['meta_input']['yht_fascia_prezzo'] = sanitize_text_field($data['fascia_prezzo']);
+        }
+        
+        if (!empty($data['capienza'])) {
+            $capacity = intval($data['capienza']);
+            if ($capacity > 0) {
+                $post_data['meta_input']['yht_capienza'] = $capacity;
+            }
+        }
+        
+        // Process services (pipe-separated)
+        if (!empty($data['servizi|pipe'])) {
+            $services = array_map('trim', explode('|', $data['servizi|pipe']));
+            $post_data['meta_input']['yht_servizi_json'] = wp_json_encode($services);
+        }
+        
+        return $post_data;
+    }
+    
+    /**
+     * Process servizi-specific data
+     */
+    private function process_servizi_data($post_data, $data) {
+        // Validate coordinates
+        $lat = $this->validate_coordinate($data['lat'] ?? '', 'latitudine');
+        $lng = $this->validate_coordinate($data['lng'] ?? '', 'longitudine');
+        
+        if (is_wp_error($lat)) return $lat;
+        if (is_wp_error($lng)) return $lng;
+        
+        $post_data['meta_input']['yht_lat'] = $lat;
+        $post_data['meta_input']['yht_lng'] = $lng;
+        
+        // Required field for servizi
+        if (empty($data['tipo_servizio'])) {
+            return new WP_Error('missing_service_type', 'Tipo servizio mancante.');
+        }
+        
+        // Optional fields
+        if (!empty($data['fascia_prezzo'])) {
+            $post_data['meta_input']['yht_fascia_prezzo'] = sanitize_text_field($data['fascia_prezzo']);
+        }
+        
+        if (!empty($data['orari'])) {
+            $post_data['meta_input']['yht_orari'] = sanitize_text_field($data['orari']);
+        }
+        
+        if (!empty($data['telefono'])) {
+            $post_data['meta_input']['yht_telefono'] = sanitize_text_field($data['telefono']);
+        }
+        
+        if (!empty($data['sito_web'])) {
+            $url = esc_url_raw($data['sito_web']);
+            if ($url) {
+                $post_data['meta_input']['yht_sito_web'] = $url;
+            }
+        }
+        
+        return $post_data;
+    }
+    
+    /**
+     * Process tours-specific data
+     */
+    private function process_tours_data($post_data, $data) {
+        // Required field
+        if (empty($data['prezzo_base'])) {
+            return new WP_Error('missing_price', 'Prezzo base mancante.');
+        }
+        
+        $price = floatval($data['prezzo_base']);
+        if ($price <= 0) {
+            return new WP_Error('invalid_price', 'Prezzo base non valido.');
+        }
+        
+        $post_data['meta_input']['yht_prezzo_base'] = $price;
+        
+        // Process JSON itinerary if provided
+        if (!empty($data['giorni_json'])) {
+            $giorni_data = json_decode($data['giorni_json'], true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($giorni_data)) {
+                $post_data['meta_input']['yht_giorni'] = wp_json_encode($giorni_data);
+            }
+        }
+        
+        return $post_data;
+    }
+    
+    /**
+     * Process taxonomies for imported posts
+     */
+    private function process_taxonomies($post_id, $data, $type) {
+        // Process pipe-separated taxonomy fields
+        $taxonomy_mappings = array(
+            'esperienze|pipe' => 'yht_esperienza',
+            'aree|pipe' => 'yht_area',
+            'stagioni|pipe' => 'yht_stagione',
+            'tipo_servizio' => 'yht_tipo_servizio'
+        );
+        
+        foreach ($taxonomy_mappings as $field => $taxonomy) {
+            if (empty($data[$field])) continue;
+            
+            $terms = array();
+            if (strpos($field, '|pipe') !== false) {
+                // Pipe-separated values
+                $terms = array_map('trim', explode('|', $data[$field]));
+            } else {
+                // Single value
+                $terms = array(trim($data[$field]));
+            }
+            
+            if (!empty($terms)) {
+                // Get or create terms
+                $term_ids = array();
+                foreach ($terms as $term_name) {
+                    if (empty($term_name)) continue;
+                    
+                    $term = get_term_by('name', $term_name, $taxonomy);
+                    if (!$term) {
+                        $result = wp_insert_term($term_name, $taxonomy);
+                        if (!is_wp_error($result)) {
+                            $term_ids[] = $result['term_id'];
+                        }
+                    } else {
+                        $term_ids[] = $term->term_id;
+                    }
+                }
+                
+                if (!empty($term_ids)) {
+                    wp_set_object_terms($post_id, $term_ids, $taxonomy);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Validate coordinate value
+     */
+    private function validate_coordinate($value, $type) {
+        if (empty($value)) {
+            return new WP_Error('missing_coordinate', "Coordinata $type mancante.");
+        }
+        
+        $coord = floatval($value);
+        
+        // Basic coordinate validation
+        if ($type === 'latitudine' && ($coord < -90 || $coord > 90)) {
+            return new WP_Error('invalid_latitude', 'Latitudine non valida (deve essere tra -90 e 90).');
+        }
+        
+        if ($type === 'longitudine' && ($coord < -180 || $coord > 180)) {
+            return new WP_Error('invalid_longitude', 'Longitudine non valida (deve essere tra -180 e 180).');
+        }
+        
+        return $coord;
+    }
+    
+    /**
+     * Parse boolean values from CSV
+     */
+    private function parse_boolean($value) {
+        $value = strtolower(trim($value));
+        return in_array($value, array('1', 'true', 'yes', 'si', 'sì')) ? '1' : '';
     }
     
     /**
@@ -77,15 +472,25 @@ class YHT_Importer {
         check_admin_referer('yht_import');
         
         $query = new WP_Query(array(
-            'post_type' => array('yht_luogo','yht_alloggio'),
+            'post_type' => array('yht_luogo','yht_alloggio','yht_servizio','yht_tour'),
             'posts_per_page' => -1,
-            'no_found_rows' => true
+            'no_found_rows' => true,
+            'meta_query' => array(
+                array(
+                    'key' => '_thumbnail_id',
+                    'compare' => 'NOT EXISTS'
+                )
+            )
         ));
         
         $done = 0;
+        $processed = 0;
+        
         while($query->have_posts()) { 
             $query->the_post();
+            $processed++;
             
+            // Skip if already has featured image
             if(has_post_thumbnail()) continue;
             
             $attachments = get_children(array(
@@ -98,13 +503,15 @@ class YHT_Importer {
             
             if($attachments) { 
                 $attachment = array_shift($attachments); 
-                set_post_thumbnail(get_the_ID(), $attachment->ID); 
-                $done++; 
+                $result = set_post_thumbnail(get_the_ID(), $attachment->ID);
+                if($result) {
+                    $done++; 
+                }
             }
         }
         wp_reset_postdata();
         
-        return "Featured images assegnate: $done";
+        return "Featured images processate: $processed elementi analizzati, $done featured images assegnate.";
     }
     
     /**

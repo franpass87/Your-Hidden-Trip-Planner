@@ -11,6 +11,8 @@ class YHT_Admin {
     
     public function __construct() {
         add_action('admin_menu', array($this, 'add_admin_menu'));
+        add_action('wp_ajax_yht_bulk_confirm_bookings', array($this, 'ajax_bulk_confirm_bookings'));
+        add_action('admin_init', array($this, 'handle_booking_export'));
     }
     
     /**
@@ -435,14 +437,37 @@ class YHT_Admin {
                 }
                 
                 if (confirm('Confermare ' + selectedIds.length + ' prenotazioni selezionate?')) {
-                    // Implementation for bulk status update would go here
-                    alert('Funzionalità in sviluppo: aggiornamento bulk status');
+                    var button = $(this);
+                    button.prop('disabled', true).text('Aggiornamento in corso...');
+                    
+                    $.ajax({
+                        url: ajaxurl,
+                        method: 'POST',
+                        data: {
+                            action: 'yht_bulk_confirm_bookings',
+                            booking_ids: selectedIds,
+                            _wpnonce: '<?php echo wp_create_nonce("yht_bulk_bookings"); ?>'
+                        },
+                        success: function(response) {
+                            if(response.success) {
+                                alert('✅ ' + response.data.message);
+                                location.reload();
+                            } else {
+                                alert('❌ ' + response.data.message);
+                                button.prop('disabled', false).text('✅ Conferma Selezionate');
+                            }
+                        },
+                        error: function() {
+                            alert('❌ Errore di connessione');
+                            button.prop('disabled', false).text('✅ Conferma Selezionate');
+                        }
+                    });
                 }
             });
             
             // Export functionality
             $('#export-bookings').on('click', function() {
-                alert('Funzionalità in sviluppo: esportazione CSV');
+                window.location.href = '<?php echo admin_url("admin.php?page=yht_bookings&action=export_csv&_wpnonce=" . wp_create_nonce("yht_export_bookings")); ?>';
             });
         });
         </script>
@@ -466,5 +491,269 @@ class YHT_Admin {
         }
         
         include YHT_PLUGIN_PATH . 'includes/admin/views/analytics-dashboard.php';
+    }
+    
+    /**
+     * Handle booking CSV export
+     */
+    public function handle_booking_export() {
+        if (!isset($_GET['page']) || $_GET['page'] !== 'yht_bookings') {
+            return;
+        }
+        
+        if (!isset($_GET['action']) || $_GET['action'] !== 'export_csv') {
+            return;
+        }
+        
+        if (!wp_verify_nonce($_GET['_wpnonce'] ?? '', 'yht_export_bookings')) {
+            wp_die('Accesso negato.');
+        }
+        
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die('Permessi insufficienti.');
+        }
+        
+        $this->export_bookings_csv();
+    }
+    
+    /**
+     * Export bookings to CSV
+     */
+    private function export_bookings_csv() {
+        $bookings = get_posts(array(
+            'post_type' => 'yht_booking',
+            'posts_per_page' => -1,
+            'orderby' => 'date',
+            'order' => 'DESC'
+        ));
+        
+        $filename = 'yht_bookings_' . date('Y-m-d_H-i-s') . '.csv';
+        
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        $output = fopen('php://output', 'w');
+        
+        // Add BOM for UTF-8
+        fputs($output, "\xEF\xBB\xBF");
+        
+        // CSV Headers
+        $headers = array(
+            'Riferimento',
+            'Data Prenotazione',
+            'Cliente Nome',
+            'Cliente Email',
+            'Cliente Telefono',
+            'Tour',
+            'Pacchetto',
+            'Data Viaggio',
+            'Numero Viaggiatori',
+            'Prezzo Totale',
+            'Stato',
+            'Richieste Speciali'
+        );
+        
+        fputcsv($output, $headers);
+        
+        // Export data
+        foreach ($bookings as $booking) {
+            $ref = get_post_meta($booking->ID, 'yht_booking_reference', true);
+            $customer_name = get_post_meta($booking->ID, 'yht_customer_name', true);
+            $customer_email = get_post_meta($booking->ID, 'yht_customer_email', true);
+            $customer_phone = get_post_meta($booking->ID, 'yht_customer_phone', true);
+            $travel_date = get_post_meta($booking->ID, 'yht_travel_date', true);
+            $num_pax = get_post_meta($booking->ID, 'yht_num_pax', true);
+            $total_price = get_post_meta($booking->ID, 'yht_total_price', true);
+            $status = get_post_meta($booking->ID, 'yht_booking_status', true) ?: 'pending_payment';
+            $package_type = get_post_meta($booking->ID, 'yht_package_type', true);
+            $special_requests = get_post_meta($booking->ID, 'yht_special_requests', true);
+            
+            $itinerary = json_decode(get_post_meta($booking->ID, 'yht_itinerary_json', true), true);
+            $tour_name = $itinerary['name'] ?? 'Tour personalizzato';
+            
+            $status_labels = array(
+                'pending_payment' => 'In attesa pagamento',
+                'confirmed' => 'Confermata',
+                'cancelled' => 'Cancellata',
+                'completed' => 'Completata'
+            );
+            
+            $row = array(
+                $ref,
+                get_the_date('d/m/Y H:i', $booking->ID),
+                $customer_name,
+                $customer_email,
+                $customer_phone,
+                $tour_name,
+                ucfirst($package_type),
+                $travel_date,
+                $num_pax,
+                '€' . $total_price,
+                $status_labels[$status] ?? $status,
+                $special_requests
+            );
+            
+            fputcsv($output, $row);
+        }
+        
+        fclose($output);
+        exit;
+    }
+    
+    /**
+     * AJAX handler for bulk booking confirmation
+     */
+    public function ajax_bulk_confirm_bookings() {
+        check_ajax_referer('yht_bulk_bookings');
+        
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array('message' => 'Permessi insufficienti.'));
+        }
+        
+        $booking_ids = $_POST['booking_ids'] ?? array();
+        if (empty($booking_ids) || !is_array($booking_ids)) {
+            wp_send_json_error(array('message' => 'Nessuna prenotazione selezionata.'));
+        }
+        
+        $updated = 0;
+        $errors = array();
+        
+        foreach ($booking_ids as $booking_id) {
+            $booking_id = intval($booking_id);
+            
+            // Verify this is a booking post
+            $post = get_post($booking_id);
+            if (!$post || $post->post_type !== 'yht_booking') {
+                $errors[] = "ID $booking_id non è una prenotazione valida.";
+                continue;
+            }
+            
+            // Update status to confirmed
+            $result = update_post_meta($booking_id, 'yht_booking_status', 'confirmed');
+            if ($result !== false) {
+                $updated++;
+                
+                // Optional: Send confirmation email to customer
+                $this->maybe_send_confirmation_email($booking_id);
+            } else {
+                $errors[] = "Errore nell'aggiornamento della prenotazione $booking_id.";
+            }
+        }
+        
+        if ($updated > 0) {
+            $message = "$updated prenotazioni confermate con successo.";
+            if (!empty($errors)) {
+                $message .= " Errori: " . implode(', ', array_slice($errors, 0, 3));
+            }
+            wp_send_json_success(array('message' => $message));
+        } else {
+            wp_send_json_error(array('message' => 'Nessuna prenotazione aggiornata. Errori: ' . implode(', ', $errors)));
+        }
+    }
+    
+    /**
+     * Send confirmation email (implemented)
+     */
+    private function maybe_send_confirmation_email($booking_id) {
+        $customer_email = get_post_meta($booking_id, 'yht_customer_email', true);
+        $customer_name = get_post_meta($booking_id, 'yht_customer_name', true);
+        
+        if (!$customer_email) {
+            return false;
+        }
+        
+        // Get booking details
+        $booking_ref = get_post_meta($booking_id, 'yht_booking_reference', true);
+        $travel_date = get_post_meta($booking_id, 'yht_travel_date', true);
+        $num_pax = get_post_meta($booking_id, 'yht_num_pax', true);
+        $total_price = get_post_meta($booking_id, 'yht_total_price', true);
+        $package_type = get_post_meta($booking_id, 'yht_package_type', true);
+        
+        $itinerary = json_decode(get_post_meta($booking_id, 'yht_itinerary_json', true), true);
+        $tour_name = $itinerary['name'] ?? 'Tour personalizzato';
+        
+        // Email subject
+        $subject = sprintf('Prenotazione confermata - %s (Rif. %s)', $tour_name, $booking_ref);
+        
+        // Email content
+        $message = $this->build_confirmation_email_content($customer_name, $booking_ref, $tour_name, $package_type, $travel_date, $num_pax, $total_price);
+        
+        // Email headers
+        $headers = array(
+            'Content-Type: text/html; charset=UTF-8',
+            'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>'
+        );
+        
+        // Send email
+        $sent = wp_mail($customer_email, $subject, $message, $headers);
+        
+        if ($sent) {
+            // Log successful email
+            update_post_meta($booking_id, 'yht_confirmation_email_sent', current_time('timestamp'));
+            error_log("YHT: Confirmation email sent successfully to $customer_email for booking $booking_id");
+        } else {
+            error_log("YHT: Failed to send confirmation email to $customer_email for booking $booking_id");
+        }
+        
+        return $sent;
+    }
+    
+    /**
+     * Build confirmation email content
+     */
+    private function build_confirmation_email_content($customer_name, $booking_ref, $tour_name, $package_type, $travel_date, $num_pax, $total_price) {
+        $site_name = get_bloginfo('name');
+        $site_url = get_home_url();
+        
+        $html = '<html><head><meta charset="UTF-8"></head><body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">';
+        
+        $html .= '<div style="max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">';
+        
+        // Header
+        $html .= '<div style="text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0; margin: -20px -20px 20px -20px;">';
+        $html .= '<h1 style="margin: 0; font-size: 24px;">✅ Prenotazione Confermata</h1>';
+        $html .= '<p style="margin: 10px 0 0; opacity: 0.9;">' . esc_html($site_name) . '</p>';
+        $html .= '</div>';
+        
+        // Greeting
+        $html .= '<p>Gentile <strong>' . esc_html($customer_name ?: 'Cliente') . '</strong>,</p>';
+        $html .= '<p>Siamo lieti di confermare la sua prenotazione per il tour <strong>' . esc_html($tour_name) . '</strong>.</p>';
+        
+        // Booking details
+        $html .= '<div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">';
+        $html .= '<h3 style="margin: 0 0 15px; color: #2d3436;">📋 Dettagli della Prenotazione</h3>';
+        $html .= '<table style="width: 100%; border-collapse: collapse;">';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Riferimento:</td><td style="padding: 5px 0;">' . esc_html($booking_ref) . '</td></tr>';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Tour:</td><td style="padding: 5px 0;">' . esc_html($tour_name) . '</td></tr>';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Pacchetto:</td><td style="padding: 5px 0;">' . esc_html(ucfirst($package_type)) . '</td></tr>';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Data partenza:</td><td style="padding: 5px 0;">' . esc_html($travel_date) . '</td></tr>';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Numero viaggiatori:</td><td style="padding: 5px 0;">' . esc_html($num_pax) . '</td></tr>';
+        $html .= '<tr><td style="padding: 5px 0; font-weight: bold;">Prezzo totale:</td><td style="padding: 5px 0; color: #00b894; font-weight: bold;">€' . esc_html($total_price) . '</td></tr>';
+        $html .= '</table>';
+        $html .= '</div>';
+        
+        // Next steps
+        $html .= '<div style="background: #e7f3ff; padding: 15px; border-radius: 6px; margin: 20px 0;">';
+        $html .= '<h3 style="margin: 0 0 10px; color: #0984e3;">🎯 Prossimi Passi</h3>';
+        $html .= '<ul style="margin: 0; padding-left: 20px;">';
+        $html .= '<li>Riceverà a breve l\'itinerario dettagliato del tour</li>';
+        $html .= '<li>Il nostro team la contatterà per finalizzare i dettagli</li>';
+        $html .= '<li>Conservi questo riferimento per qualsiasi comunicazione: <strong>' . esc_html($booking_ref) . '</strong></li>';
+        $html .= '</ul>';
+        $html .= '</div>';
+        
+        // Contact info
+        $html .= '<div style="border-top: 1px solid #ddd; padding-top: 15px; margin-top: 20px; text-align: center; color: #666;">';
+        $html .= '<p>Per qualsiasi domanda, non esiti a contattarci:</p>';
+        $html .= '<p><strong>' . esc_html($site_name) . '</strong><br>';
+        $html .= 'Email: <a href="mailto:' . get_option('admin_email') . '">' . get_option('admin_email') . '</a><br>';
+        $html .= 'Web: <a href="' . esc_url($site_url) . '">' . esc_url($site_url) . '</a></p>';
+        $html .= '</div>';
+        
+        $html .= '</div></body></html>';
+        
+        return $html;
     }
 }

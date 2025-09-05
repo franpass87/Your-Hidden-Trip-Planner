@@ -21,6 +21,7 @@ class YHT_User_Roles {
         add_action('wp_ajax_yht_save_role_permissions', array($this, 'ajax_save_role_permissions'));
         add_action('wp_ajax_yht_create_custom_role', array($this, 'ajax_create_custom_role'));
         add_action('wp_ajax_yht_delete_custom_role', array($this, 'ajax_delete_custom_role'));
+        add_action('wp_ajax_yht_create_role_from_template', array($this, 'ajax_create_role_from_template'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_scripts'));
         
         // Initialize custom roles and capabilities
@@ -799,8 +800,24 @@ class YHT_User_Roles {
                 $('.create-from-template').click(function() {
                     var template = $(this).data('template');
                     
-                    // In a real implementation, this would create a role with predefined permissions
-                    alert('Funzionalità in via di sviluppo: Template "' + template + '"');
+                    $(this).prop('disabled', true).text('Creazione...');
+                    
+                    $.post(yhtUserRoles.ajaxurl, {
+                        action: 'yht_create_role_from_template',
+                        nonce: yhtUserRoles.nonce,
+                        template: template
+                    }, function(response) {
+                        $('.create-from-template[data-template="' + template + '"]')
+                            .prop('disabled', false)
+                            .text('Crea Ruolo');
+                        
+                        if (response.success) {
+                            alert(response.data.message);
+                            location.reload();
+                        } else {
+                            alert(response.data.message || yhtUserRoles.strings.error);
+                        }
+                    });
                 });
             });
         </script>
@@ -1140,5 +1157,120 @@ class YHT_User_Roles {
         wp_send_json_success(array(
             'message' => __('Ruolo eliminato con successo!', 'your-hidden-trip')
         ));
+    }
+
+    /**
+     * AJAX: Create role from template
+     */
+    public function ajax_create_role_from_template() {
+        check_ajax_referer('yht_user_roles_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Permessi insufficienti.', 'your-hidden-trip'));
+        }
+
+        $template = sanitize_key($_POST['template']);
+        $template_data = $this->get_role_template($template);
+
+        if (!$template_data) {
+            wp_send_json_error(array('message' => __('Template non trovato.', 'your-hidden-trip')));
+        }
+
+        $role_slug = 'yht_' . $template;
+        
+        // Check if role already exists
+        if (get_role($role_slug)) {
+            wp_send_json_error(array(
+                'message' => sprintf(__('Il ruolo "%s" esiste già.', 'your-hidden-trip'), $template_data['name'])
+            ));
+        }
+
+        // Create role with template capabilities
+        add_role($role_slug, $template_data['name'], $template_data['capabilities']);
+
+        // Save to custom roles option
+        $custom_roles = get_option('yht_custom_roles', array());
+        $custom_roles[$role_slug] = array(
+            'name' => $template_data['name'],
+            'description' => $template_data['description'],
+            'capabilities' => $template_data['capabilities']
+        );
+        update_option('yht_custom_roles', $custom_roles);
+
+        wp_send_json_success(array(
+            'message' => sprintf(__('Ruolo "%s" creato con successo dal template!', 'your-hidden-trip'), $template_data['name'])
+        ));
+    }
+
+    /**
+     * Get role template data
+     */
+    private function get_role_template($template) {
+        $templates = array(
+            'tour_guide' => array(
+                'name' => __('Guida Turistica', 'your-hidden-trip'),
+                'description' => __('Può visualizzare prenotazioni, gestire clienti e accedere a informazioni sulle destinazioni.', 'your-hidden-trip'),
+                'capabilities' => array(
+                    'read' => true,
+                    'yht_view_dashboard' => true,
+                    'yht_view_bookings' => true,
+                    'yht_view_customers' => true,
+                    'yht_edit_customers' => true,
+                    'yht_contact_customers' => true,
+                    'yht_view_reports' => true
+                )
+            ),
+            'manager' => array(
+                'name' => __('Manager', 'your-hidden-trip'),
+                'description' => __('Accesso completo a report, analisi e gestione delle prenotazioni.', 'your-hidden-trip'),
+                'capabilities' => array(
+                    'read' => true,
+                    'yht_view_dashboard' => true,
+                    'yht_view_analytics' => true,
+                    'yht_view_bookings' => true,
+                    'yht_create_bookings' => true,
+                    'yht_edit_bookings' => true,
+                    'yht_manage_booking_status' => true,
+                    'yht_view_customers' => true,
+                    'yht_edit_customers' => true,
+                    'yht_contact_customers' => true,
+                    'yht_view_reports' => true,
+                    'yht_advanced_reports' => true,
+                    'yht_financial_reports' => true,
+                    'yht_manage_templates' => true
+                )
+            ),
+            'customer_service' => array(
+                'name' => __('Customer Service', 'your-hidden-trip'),
+                'description' => __('Gestione clienti, supporto e comunicazioni via email.', 'your-hidden-trip'),
+                'capabilities' => array(
+                    'read' => true,
+                    'yht_view_dashboard' => true,
+                    'yht_view_bookings' => true,
+                    'yht_create_bookings' => true,
+                    'yht_edit_bookings' => true,
+                    'yht_manage_booking_status' => true,
+                    'yht_view_customers' => true,
+                    'yht_edit_customers' => true,
+                    'yht_contact_customers' => true,
+                    'yht_view_reports' => true
+                )
+            ),
+            'accountant' => array(
+                'name' => __('Contabile', 'your-hidden-trip'),
+                'description' => __('Accesso ai report finanziari e gestione dei pagamenti.', 'your-hidden-trip'),
+                'capabilities' => array(
+                    'read' => true,
+                    'yht_view_dashboard' => true,
+                    'yht_view_bookings' => true,
+                    'yht_view_customers' => true,
+                    'yht_view_reports' => true,
+                    'yht_advanced_reports' => true,
+                    'yht_financial_reports' => true
+                )
+            )
+        );
+
+        return isset($templates[$template]) ? $templates[$template] : null;
     }
 }

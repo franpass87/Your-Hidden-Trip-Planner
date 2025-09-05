@@ -227,6 +227,258 @@ try {
     </div>
   </section>
 
+  <!-- Step 3: Attività -->
+  <section id="yht-step3" class="yht-stepview" role="tabpanel" aria-labelledby="yht-h2-3">
+    <h2 id="yht-h2-3" class="yht-h2"><?php _e('Che tipo di attività ti interessano?', 'your-hidden-trip'); ?></h2>
+    <p class="yht-help"><?php _e('Seleziona le attività che vorresti includere nel tuo viaggio.', 'your-hidden-trip'); ?></p>
+    
+    <div class="yht-grid" role="group" aria-labelledby="yht-h2-3">
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="attivita" data-value="enogastronomia">
+        <button class="yht-wishlist-btn" data-item-id="act-enogastronomia" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">🍷</div>
+        <div class="yht-t"><?php _e('Enogastronomia', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Degustazioni vini, cantine, ristoranti tipici', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="attivita" data-value="cultura">
+        <button class="yht-wishlist-btn" data-item-id="act-cultura" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">🏛️</div>
+        <div class="yht-t"><?php _e('Cultura', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Musei, monumenti, siti archeologici', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="attivita" data-value="natura">
+        <button class="yht-wishlist-btn" data-item-id="act-natura" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">🌿</div>
+        <div class="yht-t"><?php _e('Natura', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Trekking, parchi naturali, escursioni', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="attivita" data-value="benessere">
+        <button class="yht-wishlist-btn" data-item-id="act-benessere" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">🧘</div>
+        <div class="yht-t"><?php _e('Benessere', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Terme, spa, relax e meditazione', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="attivita" data-value="avventura">
+        <button class="yht-wishlist-btn" data-item-id="act-avventura" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">⛰️</div>
+        <div class="yht-t"><?php _e('Avventura', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Sport outdoor, climbing, mountain bike', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="checkbox" aria-checked="false" data-group="attivita" data-value="shopping">
+        <button class="yht-wishlist-btn" data-item-id="act-shopping" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">🛍️</div>
+        <div class="yht-t"><?php _e('Shopping', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Mercati locali, artigianato, prodotti tipici', 'your-hidden-trip'); ?></div>
+      </article>
+    </div>
+    
+    <div class="yht-error" id="yht-err3" role="alert" aria-live="polite">
+      <?php _e('Seleziona almeno una attività.', 'your-hidden-trip'); ?>
+    </div>
+    
+    <div class="yht-actions">
+      <button class="yht-btn yht-btn-primary" data-next="3" disabled>
+        <?php _e('Continua', 'your-hidden-trip'); ?>
+        <span class="btn-arrow">→</span>
+      </button>
+      <button class="yht-btn yht-btn-secondary" data-prev="3">
+        <span class="btn-arrow">←</span>
+        <?php _e('Indietro', 'your-hidden-trip'); ?>
+      </button>
+    </div>
+  </section>
+
+  <!-- Step 4: Alloggio -->
+  <section id="yht-step4" class="yht-stepview" role="tabpanel" aria-labelledby="yht-h2-4">
+    <h2 id="yht-h2-4" class="yht-h2"><?php _e('Che tipo di alloggio preferisci?', 'your-hidden-trip'); ?></h2>
+    <p class="yht-help"><?php _e('Scegli il tipo di struttura ricettiva per il tuo soggiorno.', 'your-hidden-trip'); ?></p>
+    
+    <div class="yht-grid" role="radiogroup" aria-labelledby="yht-h2-4">
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="alloggio" data-value="hotel">
+        <button class="yht-share-btn" aria-label="<?php _e('Condividi', 'your-hidden-trip'); ?>">📤</button>
+        <button class="yht-wishlist-btn" data-item-id="acc-hotel" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">🏨</div>
+        <div class="yht-t"><?php _e('Hotel', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Hotel 3-4 stelle con tutti i servizi', 'your-hidden-trip'); ?></div>
+        <div class="yht-price">€<?php _e('80-150/notte', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="alloggio" data-value="agriturismo">
+        <button class="yht-share-btn" aria-label="<?php _e('Condividi', 'your-hidden-trip'); ?>">📤</button>
+        <button class="yht-wishlist-btn" data-item-id="acc-agriturismo" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">🚜</div>
+        <div class="yht-t"><?php _e('Agriturismo', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Esperienza autentica in campagna', 'your-hidden-trip'); ?></div>
+        <div class="yht-price">€<?php _e('60-120/notte', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="alloggio" data-value="bb">
+        <button class="yht-share-btn" aria-label="<?php _e('Condividi', 'your-hidden-trip'); ?>">📤</button>
+        <button class="yht-wishlist-btn" data-item-id="acc-bb" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">🏠</div>
+        <div class="yht-t"><?php _e('B&B', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Accoglienza familiare, colazione inclusa', 'your-hidden-trip'); ?></div>
+        <div class="yht-price">€<?php _e('50-90/notte', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="alloggio" data-value="resort">
+        <button class="yht-share-btn" aria-label="<?php _e('Condividi', 'your-hidden-trip'); ?>">📤</button>
+        <button class="yht-wishlist-btn" data-item-id="acc-resort" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">🏖️</div>
+        <div class="yht-t"><?php _e('Resort & Spa', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Lusso e relax con centro benessere', 'your-hidden-trip'); ?></div>
+        <div class="yht-price">€<?php _e('150-300/notte', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="alloggio" data-value="villa">
+        <button class="yht-share-btn" aria-label="<?php _e('Condividi', 'your-hidden-trip'); ?>">📤</button>
+        <button class="yht-wishlist-btn" data-item-id="acc-villa" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">🏰</div>
+        <div class="yht-t"><?php _e('Villa Storica', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Dimora storica esclusiva', 'your-hidden-trip'); ?></div>
+        <div class="yht-price">€<?php _e('200-500/notte', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="alloggio" data-value="mix">
+        <button class="yht-share-btn" aria-label="<?php _e('Condividi', 'your-hidden-trip'); ?>">📤</button>
+        <button class="yht-wishlist-btn" data-item-id="acc-mix" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
+        <div class="yht-ico">🗺️</div>
+        <div class="yht-t"><?php _e('Mix Personalizzato', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Combinazione di diverse tipologie', 'your-hidden-trip'); ?></div>
+        <div class="yht-price"><?php _e('Su misura', 'your-hidden-trip'); ?></div>
+      </article>
+    </div>
+    
+    <div class="yht-error" id="yht-err4" role="alert" aria-live="polite">
+      <?php _e('Seleziona un tipo di alloggio.', 'your-hidden-trip'); ?>
+    </div>
+    
+    <div class="yht-actions">
+      <button class="yht-btn yht-btn-primary" data-next="4" disabled>
+        <?php _e('Continua', 'your-hidden-trip'); ?>
+        <span class="btn-arrow">→</span>
+      </button>
+      <button class="yht-btn yht-btn-secondary" data-prev="4">
+        <span class="btn-arrow">←</span>
+        <?php _e('Indietro', 'your-hidden-trip'); ?>
+      </button>
+    </div>
+  </section>
+
+  <!-- Step 5: Durata -->
+  <section id="yht-step5" class="yht-stepview" role="tabpanel" aria-labelledby="yht-h2-5">
+    <h2 id="yht-h2-5" class="yht-h2"><?php _e('Quanto durerà il tuo viaggio?', 'your-hidden-trip'); ?></h2>
+    <p class="yht-help"><?php _e('Scegli la durata del soggiorno e specifica quando partire.', 'your-hidden-trip'); ?></p>
+    
+    <div class="yht-grid" role="radiogroup" aria-labelledby="yht-h2-5">
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="1_notte">
+        <div class="yht-ico">🌙</div>
+        <div class="yht-t"><?php _e('1 Notte', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Weekend breve e intensivo', 'your-hidden-trip'); ?></div>
+        <div class="yht-price">€<?php _e('120-250', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="2_notti">
+        <div class="yht-ico">🌙🌙</div>
+        <div class="yht-t"><?php _e('2 Notti', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Weekend rilassante', 'your-hidden-trip'); ?></div>
+        <div class="yht-price">€<?php _e('220-450', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="3_notti">
+        <div class="yht-ico">🌙🌙🌙</div>
+        <div class="yht-t"><?php _e('3 Notti', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Piccola vacanza', 'your-hidden-trip'); ?></div>
+        <div class="yht-price">€<?php _e('320-650', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="4_notti">
+        <div class="yht-ico">🌙🌙🌙🌙</div>
+        <div class="yht-t"><?php _e('4 Notti', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Viaggio approfondito', 'your-hidden-trip'); ?></div>
+        <div class="yht-price">€<?php _e('420-850', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="5_notti">
+        <div class="yht-ico">🌙🌙🌙🌙🌙</div>
+        <div class="yht-t"><?php _e('5 Notti', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Settimana di relax', 'your-hidden-trip'); ?></div>
+        <div class="yht-price">€<?php _e('520-1050', 'your-hidden-trip'); ?></div>
+      </article>
+      
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="durata" data-value="personalizzata">
+        <div class="yht-ico">📅</div>
+        <div class="yht-t"><?php _e('Personalizzata', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Durata su misura', 'your-hidden-trip'); ?></div>
+        <div class="yht-price"><?php _e('Su richiesta', 'your-hidden-trip'); ?></div>
+      </article>
+    </div>
+    
+    <div class="yht-row yht-mt" style="margin-top: 24px;">
+      <div class="yht-col">
+        <label for="yht-startdate" class="yht-field-label"><?php _e('Data di partenza', 'your-hidden-trip'); ?></label>
+        <input id="yht-startdate" class="yht-input" type="date" style="width: 100%; padding: 12px; border: 2px solid var(--line); border-radius: 10px; font-size: 1rem;" />
+      </div>
+      <div class="yht-col">
+        <label for="yht-pax" class="yht-field-label"><?php _e('Numero persone', 'your-hidden-trip'); ?></label>
+        <input id="yht-pax" class="yht-input" type="number" min="1" value="2" style="width: 100%; padding: 12px; border: 2px solid var(--line); border-radius: 10px; font-size: 1rem;" />
+      </div>
+    </div>
+    
+    <div class="yht-error" id="yht-err5" role="alert" aria-live="polite">
+      <?php _e('Seleziona la durata del viaggio e la data di partenza.', 'your-hidden-trip'); ?>
+    </div>
+    
+    <div class="yht-actions">
+      <button class="yht-btn yht-btn-primary" data-next="5" disabled>
+        <?php _e('Vai al riepilogo', 'your-hidden-trip'); ?>
+        <span class="btn-arrow">→</span>
+      </button>
+      <button class="yht-btn yht-btn-secondary" data-prev="5">
+        <span class="btn-arrow">←</span>
+        <?php _e('Indietro', 'your-hidden-trip'); ?>
+      </button>
+    </div>
+  </section>
+
+  <!-- Step 6: Riepilogo -->
+  <section id="yht-step6" class="yht-stepview" role="tabpanel" aria-labelledby="yht-h2-6">
+    <h2 id="yht-h2-6" class="yht-h2"><?php _e('🎯 Il tuo viaggio perfetto', 'your-hidden-trip'); ?></h2>
+    <p class="yht-help"><?php _e('Ecco il riepilogo del tuo viaggio personalizzato in Tuscia e Umbria.', 'your-hidden-trip'); ?></p>
+    
+    <div class="yht-summary" id="yht-summary" style="background: var(--card); border: 2px solid var(--primary); border-radius: 16px; padding: 24px; margin: 20px 0;">
+      <div class="summary-content">
+        <p><?php _e('Seleziona le tue preferenze per vedere il riepilogo personalizzato...', 'your-hidden-trip'); ?></p>
+      </div>
+    </div>
+    
+    <h3 style="margin: 24px 0 16px; color: var(--primary); font-size: 1.3rem;">
+      🌟 <?php _e('Proposte di tour personalizzate', 'your-hidden-trip'); ?>
+    </h3>
+    <div id="yht-tours" style="margin-bottom: 24px;">
+      <div style="text-align: center; padding: 40px; color: var(--muted); font-style: italic;">
+        <?php _e('Completa i passaggi precedenti per vedere le proposte di tour personalizzate...', 'your-hidden-trip'); ?>
+      </div>
+    </div>
+    
+    <div class="yht-actions">
+      <button class="yht-btn yht-btn-primary" id="yht-book-now" style="background: var(--gradient-primary); font-size: 1.1rem;" disabled>
+        🎉 <?php _e('Prenota ora', 'your-hidden-trip'); ?>
+      </button>
+      <button class="yht-btn yht-btn-secondary" data-prev="6">
+        <span class="btn-arrow">←</span>
+        <?php _e('Modifica preferenze', 'your-hidden-trip'); ?>
+      </button>
+      <button class="yht-btn yht-btn-ghost" id="yht-export">
+        📤 <?php _e('Esporta PDF', 'your-hidden-trip'); ?>
+      </button>
+    </div>
+  </section>
+
   <!-- Notification Container -->
   <div class="yht-notifications" id="yht-notifications" aria-live="polite" aria-atomic="false"></div>
   
@@ -304,6 +556,131 @@ try {
   margin-left: 0;
 }
 
+/* Step View Enhancements - Fix Overlapping Issues */
+.yht-stepview {
+  display: none !important;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.yht-stepview[data-show="true"] {
+  display: block !important;
+  opacity: 1;
+  transform: translateY(0);
+  animation: slideInUp 0.6s ease;
+}
+
+/* Form Field Styles */
+.yht-field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.yht-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  font-size: 1rem;
+  background: var(--card);
+  color: var(--text);
+  transition: var(--transition);
+}
+
+.yht-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.yht-row {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.yht-col {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* Enhanced Grid for Better Responsiveness */
+.yht-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+@media (max-width: 768px) {
+  .yht-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .yht-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .yht-col {
+    min-width: auto;
+  }
+}
+
+/* Card Selection States */
+.yht-card[data-selected="true"] {
+  border-color: var(--primary);
+  background: rgba(16, 185, 129, 0.05);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.yht-card[data-selected="true"] .yht-ico {
+  transform: scale(1.1);
+}
+
+/* Button States */
+.yht-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.yht-btn:disabled:hover {
+  transform: none;
+  background: inherit;
+}
+
+/* Error Messages */
+.yht-error[data-show="true"] {
+  display: block;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
+  animation: slideInDown 0.3s ease;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Loading Overlay */
 .yht-loading-overlay {
   position: fixed;
@@ -339,11 +716,23 @@ try {
 <script>
 // Initialize trip builder when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-  // This will be handled by the YHTEnhancer class
   console.log('Trip Builder Enhanced Template Loaded');
   
+  // Wait for YHTEnhancer to be available
+  if (typeof window.yhtEnhancer !== 'undefined') {
+    console.log('YHTEnhancer already available');
+  } else {
+    // Wait for enhancer to be loaded
+    const checkEnhancer = setInterval(() => {
+      if (typeof window.yhtEnhancer !== 'undefined') {
+        clearInterval(checkEnhancer);
+        console.log('YHTEnhancer loaded and ready');
+      }
+    }, 100);
+  }
+  
   // Accessibility improvements
-  const cards = document.querySelectorAll('.yht-card[role="radio"]');
+  const cards = document.querySelectorAll('.yht-card[role="radio"], .yht-card[role="checkbox"]');
   cards.forEach(card => {
     card.addEventListener('keydown', function(e) {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -361,6 +750,13 @@ document.addEventListener('DOMContentLoaded', function() {
       btn.innerHTML = '❤️';
       btn.setAttribute('aria-label', '<?php _e("Rimuovi dai preferiti", "your-hidden-trip"); ?>');
     }
+  });
+  
+  // Prevent wishlist and share buttons from triggering card selection
+  document.querySelectorAll('.yht-wishlist-btn, .yht-share-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
   });
 });
 </script>
