@@ -21,15 +21,15 @@
         </testsuite>
     </testsuites>
     
-    <filter>
-        <whitelist processUncoveredFilesFromWhitelist="true">
+    <coverage processUncoveredFiles="true">
+        <include>
             <directory suffix=".php">./includes</directory>
-            <exclude>
-                <directory suffix=".php">./includes/admin/views</directory>
-                <file>./includes/class-yht-plugin.php</file>
-            </exclude>
-        </whitelist>
-    </filter>
+        </include>
+        <exclude>
+            <directory suffix=".php">./includes/admin/views</directory>
+            <file>./includes/class-yht-plugin.php</file>
+        </exclude>
+    </coverage>
     
     <logging>
         <log type="coverage-html" target="tests/coverage"/>
