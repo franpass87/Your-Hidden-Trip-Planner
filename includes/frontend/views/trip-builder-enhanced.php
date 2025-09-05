@@ -68,70 +68,82 @@ try {
     <p class="yht-help"><?php _e('Scegli il tema principale del tuo viaggio in Tuscia e Umbria.', 'your-hidden-trip'); ?></p>
     
     <div class="yht-grid" role="radiogroup" aria-labelledby="yht-h2-1">
-      <article class="yht-card yht-animate-in" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="enogastronomica">
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="enogastronomica">
         <button class="yht-wishlist-btn" data-item-id="exp-enogastronomica" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
         <div class="yht-ico">🍷</div>
         <div class="yht-t"><?php _e('Enogastronomica', 'your-hidden-trip'); ?></div>
-        <div class="yht-d"><?php _e('Degustazioni, cantine, prodotti tipici', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Degustazioni esclusive, visite in cantine storiche e incontri con produttori locali per scoprire i sapori autentici del territorio.', 'your-hidden-trip'); ?></div>
         <div class="yht-features">
-          <span>✨ <?php _e('Visite esclusive', 'your-hidden-trip'); ?></span>
-          <span>🧑‍🍳 <?php _e('Chef locali', 'your-hidden-trip'); ?></span>
+          <span>✨ <?php _e('Visite esclusive in cantine', 'your-hidden-trip'); ?></span>
+          <span>🧑‍🍳 <?php _e('Esperienze con chef locali', 'your-hidden-trip'); ?></span>
+          <span>🍯 <?php _e('Prodotti tipici DOP e IGP', 'your-hidden-trip'); ?></span>
         </div>
+        <div class="yht-price"><?php _e('Da €89/persona', 'your-hidden-trip'); ?></div>
       </article>
       
-      <article class="yht-card yht-animate-in" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="storico_culturale">
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="storico_culturale">
         <button class="yht-wishlist-btn" data-item-id="exp-storico" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
         <div class="yht-ico">🏛️</div>
         <div class="yht-t"><?php _e('Storico-Culturale', 'your-hidden-trip'); ?></div>
-        <div class="yht-d"><?php _e('Musei, borghi medievali, siti archeologici', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Un viaggio nel tempo attraverso musei, borghi medievali e siti archeologici con guide esperte del territorio.', 'your-hidden-trip'); ?></div>
         <div class="yht-features">
-          <span>📚 <?php _e('Guide esperte', 'your-hidden-trip'); ?></span>
-          <span>🎭 <?php _e('Eventi culturali', 'your-hidden-trip'); ?></span>
+          <span>📚 <?php _e('Guide specializzate', 'your-hidden-trip'); ?></span>
+          <span>🎭 <?php _e('Eventi culturali esclusivi', 'your-hidden-trip'); ?></span>
+          <span>🏰 <?php _e('Accesso a luoghi privati', 'your-hidden-trip'); ?></span>
         </div>
+        <div class="yht-price"><?php _e('Da €75/persona', 'your-hidden-trip'); ?></div>
       </article>
       
-      <article class="yht-card yht-animate-in" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="natura_relax">
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="natura_relax">
         <button class="yht-wishlist-btn" data-item-id="exp-natura" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
         <div class="yht-ico">🌿</div>
         <div class="yht-t"><?php _e('Natura e Relax', 'your-hidden-trip'); ?></div>
-        <div class="yht-d"><?php _e('Terme, parchi naturali, wellness', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Immergiti nella natura incontaminata con esperienze wellness, terme naturali e trekking guidato.', 'your-hidden-trip'); ?></div>
         <div class="yht-features">
-          <span>🧘 <?php _e('Spa & Terme', 'your-hidden-trip'); ?></span>
-          <span>🥾 <?php _e('Trekking guidato', 'your-hidden-trip'); ?></span>
+          <span>🧘 <?php _e('Spa e terme naturali', 'your-hidden-trip'); ?></span>
+          <span>🥾 <?php _e('Trekking con guide nature', 'your-hidden-trip'); ?></span>
+          <span>🌱 <?php _e('Attività eco-sostenibili', 'your-hidden-trip'); ?></span>
         </div>
+        <div class="yht-price"><?php _e('Da €95/persona', 'your-hidden-trip'); ?></div>
       </article>
       
-      <article class="yht-card yht-animate-in" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="avventura">
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="avventura">
         <button class="yht-wishlist-btn" data-item-id="exp-avventura" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
         <div class="yht-ico">⛰️</div>
         <div class="yht-t"><?php _e('Avventura Outdoor', 'your-hidden-trip'); ?></div>
-        <div class="yht-d"><?php _e('Trekking, mountain bike, attività sportive', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Trekking, mountain bike, attività sportive all\'aria aperta per gli amanti dell\'avventura e dello sport.', 'your-hidden-trip'); ?></div>
         <div class="yht-features">
           <span>🚴 <?php _e('E-bike incluse', 'your-hidden-trip'); ?></span>
-          <span>🧗 <?php _e('Climbing', 'your-hidden-trip'); ?></span>
+          <span>🧗 <?php _e('Attività climbing', 'your-hidden-trip'); ?></span>
+          <span>🥾 <?php _e('Guide esperte', 'your-hidden-trip'); ?></span>
         </div>
+        <div class="yht-price"><?php _e('Da €120/persona', 'your-hidden-trip'); ?></div>
       </article>
       
-      <article class="yht-card yht-animate-in" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="romantica">
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="romantica">
         <button class="yht-wishlist-btn" data-item-id="exp-romantica" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
         <div class="yht-ico">💕</div>
         <div class="yht-t"><?php _e('Romantica', 'your-hidden-trip'); ?></div>
-        <div class="yht-d"><?php _e('Cene a lume di candela, tramonti, coppia', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Cene a lume di candela, tramonti mozzafiato e momenti speciali pensati per le coppie.', 'your-hidden-trip'); ?></div>
         <div class="yht-features">
           <span>💐 <?php _e('Sorprese incluse', 'your-hidden-trip'); ?></span>
-          <span>🥂 <?php _e('Champagne', 'your-hidden-trip'); ?></span>
+          <span>🥂 <?php _e('Champagne e degustazioni', 'your-hidden-trip'); ?></span>
+          <span>🌅 <?php _e('Location esclusive', 'your-hidden-trip'); ?></span>
         </div>
+        <div class="yht-price"><?php _e('Da €150/persona', 'your-hidden-trip'); ?></div>
       </article>
       
-      <article class="yht-card yht-animate-in" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="famiglia">
+      <article class="yht-card" tabindex="0" role="radio" aria-checked="false" data-group="esperienza" data-value="famiglia">
         <button class="yht-wishlist-btn" data-item-id="exp-famiglia" aria-label="<?php _e('Aggiungi ai preferiti', 'your-hidden-trip'); ?>">🤍</button>
         <div class="yht-ico">👨‍👩‍👧‍👦</div>
         <div class="yht-t"><?php _e('Famiglia', 'your-hidden-trip'); ?></div>
-        <div class="yht-d"><?php _e('Attività per bambini, family-friendly', 'your-hidden-trip'); ?></div>
+        <div class="yht-d"><?php _e('Attività pensate per tutta la famiglia con esperienze educative e divertenti per bambini e adulti.', 'your-hidden-trip'); ?></div>
         <div class="yht-features">
-          <span>🎪 <?php _e('Attività bimbi', 'your-hidden-trip'); ?></span>
+          <span>🎪 <?php _e('Attività per bambini', 'your-hidden-trip'); ?></span>
           <span>🏰 <?php _e('Castelli da esplorare', 'your-hidden-trip'); ?></span>
+          <span>🎨 <?php _e('Laboratori creativi', 'your-hidden-trip'); ?></span>
         </div>
+        <div class="yht-price"><?php _e('Da €65/persona', 'your-hidden-trip'); ?></div>
       </article>
     </div>
     
@@ -140,7 +152,7 @@ try {
     </div>
     
     <div class="yht-actions">
-      <button class="yht-btn yht-btn-primary" data-next="1" disabled>
+      <button class="yht-btn" data-next="1" disabled>
         <?php _e('Continua', 'your-hidden-trip'); ?>
         <span class="btn-arrow">→</span>
       </button>
