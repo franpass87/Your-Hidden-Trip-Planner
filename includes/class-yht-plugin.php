@@ -71,6 +71,9 @@ class YHT_Plugin {
                 'includes/security/',
                 'includes/seo/',
                 'includes/pdf/',
+                'includes/pwa/',
+                'includes/collaboration/',
+                'includes/integrations/',
             );
 
             foreach ($directories as $dir) {
@@ -167,6 +170,9 @@ class YHT_Plugin {
         $this->load_analytics();
         $this->load_security();
         $this->load_seo();
+        $this->load_pwa();
+        $this->load_collaboration();
+        $this->load_integrations();
     }
     
     /**
@@ -259,6 +265,36 @@ class YHT_Plugin {
      */
     private function load_seo() {
         new YHT_SEO_Manager();
+    }
+
+    /**
+     * Load PWA module
+     */
+    private function load_pwa() {
+        new YHT_PWA_Manager();
+    }
+
+    /**
+     * Load collaboration module
+     */
+    private function load_collaboration() {
+        new YHT_Collaboration_Manager();
+    }
+
+    /**
+     * Load integrations
+     */
+    private function load_integrations() {
+        // WooCommerce integration
+        new YHT_WooCommerce_Integration();
+        
+        // WPML integration (handled in load_textdomain)
+        
+        // Calendar sync integration
+        new YHT_Calendar_Integration();
+        
+        // Social sharing integration
+        new YHT_Social_Integration();
     }
 
     /**
